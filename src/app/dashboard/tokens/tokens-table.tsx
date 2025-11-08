@@ -5,6 +5,7 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getFilteredRowModel,
   useReactTable
 } from '@tanstack/react-table';
 import {
@@ -15,8 +16,10 @@ import {
   getTokenById
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Trash2 } from 'lucide-react';
+import { Eye, Download, Trash2, Search, Copy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -56,14 +59,27 @@ const createColumns = (
       const address = row.getValue('token_address') as string;
       const short = `${address.slice(0, 8)}...${address.slice(-6)}`;
       return (
-        <a
-          href={`https://solscan.io/token/${address}`}
-          target='_blank'
-          rel='noopener noreferrer'
-          className='text-primary font-mono text-sm hover:underline'
-        >
-          {short}
-        </a>
+        <div className='flex items-center gap-2'>
+          <a
+            href={`https://solscan.io/token/${address}`}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary font-mono text-sm hover:underline'
+          >
+            {short}
+          </a>
+          <Button
+            variant='ghost'
+            size='sm'
+            className='h-6 w-6 p-0'
+            onClick={() => {
+              navigator.clipboard.writeText(address);
+              toast.success('Address copied to clipboard');
+            }}
+          >
+            <Copy className='h-3 w-3' />
+          </Button>
+        </div>
       );
     }
   },
@@ -179,6 +195,7 @@ export function TokensTable({ tokens }: TokensTableProps) {
   const [selectedToken, setSelectedToken] = useState<TokenDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [globalFilter, setGlobalFilter] = useState('');
 
   const handleViewDetails = async (id: number) => {
     setIsLoadingDetails(true);
@@ -221,12 +238,41 @@ export function TokensTable({ tokens }: TokensTableProps) {
     data: tokens,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel()
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    state: {
+      globalFilter
+    },
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const search = filterValue.toLowerCase();
+      // Search in token address, token name, token symbol, acronym
+      const tokenData = row.original;
+      return (
+        tokenData.token_address?.toLowerCase().includes(search) ||
+        tokenData.token_name?.toLowerCase().includes(search) ||
+        tokenData.token_symbol?.toLowerCase().includes(search) ||
+        tokenData.acronym?.toLowerCase().includes(search)
+      );
+    }
   });
 
   return (
     <>
       <div className='space-y-4'>
+        {/* Search Input */}
+        <div className='flex items-center gap-2'>
+          <div className='relative flex-1'>
+            <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+            <Input
+              placeholder='Search by token address or wallet address...'
+              value={globalFilter ?? ''}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className='pl-10'
+            />
+          </div>
+        </div>
+
         <div className='rounded-md border'>
           <Table>
             <TableHeader>

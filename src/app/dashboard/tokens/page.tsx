@@ -81,7 +81,7 @@ export default function TokensPage() {
             {data.tokens[0]
               ? new Date(
                   data.tokens[0].analysis_timestamp.replace(' ', 'T') + 'Z'
-                ).toLocaleDateString()
+                ).toLocaleString()
               : '-'}
           </div>
         </div>
