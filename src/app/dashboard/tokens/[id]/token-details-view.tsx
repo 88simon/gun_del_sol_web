@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import { WalletTags } from '@/components/wallet-tags';
 
 interface TokenDetailsViewProps {
   token: TokenDetail;
@@ -128,6 +129,7 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
               <TableRow>
                 <TableHead className='w-[60px]'>Rank</TableHead>
                 <TableHead>Wallet Address</TableHead>
+                <TableHead>Tags</TableHead>
                 <TableHead>First Buy Time</TableHead>
                 <TableHead className='text-right'>Amount (USD)</TableHead>
                 <TableHead className='text-center'>Txns</TableHead>
@@ -139,7 +141,7 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
               {token.wallets.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className='text-muted-foreground py-12 text-center'
                   >
                     No wallets found
@@ -153,6 +155,9 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
                     </TableCell>
                     <TableCell className='font-mono text-sm'>
                       {wallet.wallet_address}
+                    </TableCell>
+                    <TableCell>
+                      <WalletTags walletAddress={wallet.wallet_address} />
                     </TableCell>
                     <TableCell className='text-sm'>
                       {formatTimestamp(wallet.first_buy_timestamp)}

@@ -52,6 +52,19 @@ export interface TokensResponse {
   tokens: Token[];
 }
 
+export interface MultiTokenWallet {
+  wallet_address: string;
+  token_count: number;
+  token_names: string[];
+  token_addresses: string[];
+  token_ids: number[];
+}
+
+export interface MultiTokenWalletsResponse {
+  total: number;
+  wallets: MultiTokenWallet[];
+}
+
 /**
  * Fetch all analyzed tokens
  */
@@ -132,4 +145,107 @@ export function formatShortDate(timestamp: string): string {
   const utcTimestamp = timestamp.replace(' ', 'T') + 'Z';
   const date = new Date(utcTimestamp);
   return date.toLocaleDateString();
+}
+
+/**
+ * Fetch wallets that appear in multiple tokens
+ */
+export async function getMultiTokenWallets(
+  minTokens: number = 2
+): Promise<MultiTokenWalletsResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/multi-token-wallets?min_tokens=${minTokens}`,
+    {
+      cache: 'no-store'
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch multi-token wallets');
+  }
+
+  return res.json();
+}
+
+/**
+ * Get tags for a wallet address
+ */
+export async function getWalletTags(walletAddress: string): Promise<string[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/wallets/${walletAddress}/tags`,
+    {
+      cache: 'no-store'
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch wallet tags');
+  }
+
+  const data = await res.json();
+  return data.tags;
+}
+
+/**
+ * Add a tag to a wallet
+ */
+export async function addWalletTag(
+  walletAddress: string,
+  tag: string
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/wallets/${walletAddress}/tags`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ tag })
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to add tag');
+  }
+}
+
+/**
+ * Remove a tag from a wallet
+ */
+export async function removeWalletTag(
+  walletAddress: string,
+  tag: string
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/wallets/${walletAddress}/tags`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ tag })
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to remove tag');
+  }
+}
+
+/**
+ * Get all unique tags
+ */
+export async function getAllTags(): Promise<string[]> {
+  const res = await fetch(`${API_BASE_URL}/tags`, {
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch tags');
+  }
+
+  const data = await res.json();
+  return data.tags;
 }
