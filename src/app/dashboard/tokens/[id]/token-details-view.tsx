@@ -129,7 +129,6 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
               <TableRow>
                 <TableHead className='w-[60px]'>Rank</TableHead>
                 <TableHead>Wallet Address</TableHead>
-                <TableHead>Tags</TableHead>
                 <TableHead>First Buy Time</TableHead>
                 <TableHead className='text-right'>Amount (USD)</TableHead>
                 <TableHead className='text-center'>Txns</TableHead>
@@ -141,7 +140,7 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
               {token.wallets.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={7}
                     className='text-muted-foreground py-12 text-center'
                   >
                     No wallets found
@@ -153,11 +152,16 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
                     <TableCell className='text-primary font-semibold'>
                       #{index + 1}
                     </TableCell>
-                    <TableCell className='font-mono text-sm'>
-                      {wallet.wallet_address}
-                    </TableCell>
                     <TableCell>
-                      <WalletTags walletAddress={wallet.wallet_address} />
+                      <div className='flex flex-col gap-1'>
+                        <div className='font-mono text-sm'>
+                          {wallet.wallet_address}
+                        </div>
+                        <WalletTags
+                          walletAddress={wallet.wallet_address}
+                          compact
+                        />
+                      </div>
                     </TableCell>
                     <TableCell className='text-sm'>
                       {formatTimestamp(wallet.first_buy_timestamp)}
@@ -176,7 +180,8 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
                         : 'N/A'}
                     </TableCell>
                     <TableCell className='text-right'>
-                      <div className='flex justify-end gap-2'>
+                      <div className='flex items-center gap-2'>
+                        <WalletTags walletAddress={wallet.wallet_address} />
                         <Button
                           variant='ghost'
                           size='sm'

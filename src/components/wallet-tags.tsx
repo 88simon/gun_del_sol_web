@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getWalletTags, addWalletTag, removeWalletTag } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,29 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
   const [newTag, setNewTag] = useState('');
   const [loading, setLoading] = useState(false);
   const [showInput, setShowInput] = useState(false);
+  const inputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadTags();
   }, [walletAddress]);
+
+  // Close input when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setShowInput(false);
+        setNewTag('');
+      }
+    };
+
+    if (showInput) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showInput]);
 
   const loadTags = async () => {
     try {
@@ -80,66 +99,64 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
   }
 
   return (
-    <div className='space-y-2'>
-      <div className='flex flex-wrap items-center gap-2'>
-        {tags.map((tag) => (
-          <div
-            key={tag}
-            className='bg-primary/10 text-primary flex items-center gap-1 rounded-md px-2 py-1 text-sm'
-          >
-            <Tag className='h-3 w-3' />
-            <span>{tag}</span>
-            <Button
-              variant='ghost'
-              size='sm'
-              className='h-4 w-4 p-0 hover:bg-transparent'
-              onClick={() => handleRemoveTag(tag)}
-              disabled={loading}
-            >
-              <X className='h-3 w-3' />
-            </Button>
-          </div>
-        ))}
-
-        {showInput ? (
-          <div className='flex items-center gap-1'>
-            <Input
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddTag();
-                if (e.key === 'Escape') {
-                  setShowInput(false);
-                  setNewTag('');
-                }
-              }}
-              placeholder='Tag name'
-              className='h-7 w-32 text-sm'
-              autoFocus
-              disabled={loading}
-            />
-            <Button
-              variant='ghost'
-              size='sm'
-              className='h-7 w-7 p-0'
-              onClick={handleAddTag}
-              disabled={loading}
-            >
-              <Plus className='h-3 w-3' />
-            </Button>
-          </div>
-        ) : (
+    <div className='flex flex-wrap items-center gap-1'>
+      {tags.map((tag) => (
+        <div
+          key={tag}
+          className='bg-primary/10 text-primary flex items-center gap-1 rounded px-1.5 py-0.5 text-xs'
+        >
+          <Tag className='h-3 w-3' />
+          <span>{tag}</span>
           <Button
-            variant='outline'
+            variant='ghost'
             size='sm'
-            className='h-7 text-xs'
-            onClick={() => setShowInput(true)}
+            className='h-3 w-3 p-0 hover:bg-transparent'
+            onClick={() => handleRemoveTag(tag)}
+            disabled={loading}
           >
-            <Plus className='mr-1 h-3 w-3' />
-            Add Tag
+            <X className='h-2.5 w-2.5' />
           </Button>
-        )}
-      </div>
+        </div>
+      ))}
+
+      {showInput ? (
+        <div ref={inputRef} className='flex items-center gap-1'>
+          <Input
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddTag();
+              if (e.key === 'Escape') {
+                setShowInput(false);
+                setNewTag('');
+              }
+            }}
+            placeholder='Tag name'
+            className='h-6 w-24 text-xs'
+            autoFocus
+            disabled={loading}
+          />
+          <Button
+            variant='ghost'
+            size='sm'
+            className='h-6 w-6 p-0'
+            onClick={handleAddTag}
+            disabled={loading}
+          >
+            <Plus className='h-3 w-3' />
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant='ghost'
+          size='sm'
+          className='h-6 w-6 p-0'
+          onClick={() => setShowInput(true)}
+          title='Add tag'
+        >
+          <Tag className='h-3.5 w-3.5' />
+        </Button>
+      )}
     </div>
   );
 }

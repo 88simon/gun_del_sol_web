@@ -26,6 +26,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WalletTags } from '@/components/wallet-tags';
 
 interface TokenDetailsModalProps {
   token: TokenDetail | null;
@@ -188,6 +189,7 @@ export function TokenDetailsModal({
                         </TableCell>
                         <TableCell className='text-right'>
                           <div className='flex justify-end gap-2'>
+                            <WalletTags walletAddress={wallet.wallet_address} />
                             <Button
                               variant='ghost'
                               size='sm'
@@ -308,6 +310,7 @@ export function TokenDetailsModal({
                                 </TableCell>
                                 <TableCell className='text-right'>
                                   <div className='flex justify-end gap-1'>
+                                    <WalletTags walletAddress={wallet.wallet_address} />
                                     <Button
                                       variant='ghost'
                                       size='sm'
