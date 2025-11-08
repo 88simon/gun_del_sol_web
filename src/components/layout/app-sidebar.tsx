@@ -39,7 +39,8 @@ import {
   IconCreditCard,
   IconLogout,
   IconPhotoUp,
-  IconUserCircle
+  IconUserCircle,
+  IconTags
 } from '@tabler/icons-react';
 import { SignOutButton } from '@clerk/nextjs';
 import Link from 'next/link';
@@ -47,7 +48,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
 
-export default function AppSidebar() {
+interface AppSidebarProps {
+  onCodexToggle?: () => void;
+}
+
+export default function AppSidebar({ onCodexToggle }: AppSidebarProps) {
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
   const { user } = useUser();
@@ -127,6 +132,20 @@ export default function AppSidebar() {
                 </SidebarMenuItem>
               );
             })}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={onCodexToggle}
+                tooltip='Codex'
+              >
+                <IconTags />
+                <span>Codex</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

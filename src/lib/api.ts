@@ -70,6 +70,15 @@ export interface MultiTokenWalletsResponse {
   wallets: MultiTokenWallet[];
 }
 
+export interface CodexWallet {
+  wallet_address: string;
+  tags: WalletTag[];
+}
+
+export interface CodexResponse {
+  wallets: CodexWallet[];
+}
+
 /**
  * Fetch all analyzed tokens
  */
@@ -254,4 +263,19 @@ export async function getAllTags(): Promise<string[]> {
 
   const data = await res.json();
   return data.tags;
+}
+
+/**
+ * Get all wallets in the Codex (wallets that have tags)
+ */
+export async function getCodexWallets(): Promise<CodexResponse> {
+  const res = await fetch(`${API_BASE_URL}/codex`, {
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch Codex');
+  }
+
+  return res.json();
 }

@@ -28,13 +28,16 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { TokenDetailsModal } from './token-details-modal';
+import { useCodex } from '@/contexts/codex-context';
+import { cn } from '@/lib/utils';
 
 const createColumns = (
   handleViewDetails: (id: number) => void,
-  handleDelete: (id: number) => void
+  handleDelete: (id: number) => void,
+  isCompact: boolean = false
 ): ColumnDef<Token>[] => [
   {
     accessorKey: 'token_name',
@@ -43,9 +46,9 @@ const createColumns = (
       const name = row.original.token_name || 'Unknown';
       const symbol = row.original.token_symbol || '-';
       return (
-        <div>
-          <div className='font-medium'>{name}</div>
-          <div className='text-muted-foreground text-sm uppercase'>
+        <div className='min-w-[120px]'>
+          <div className={cn('font-medium', isCompact ? 'text-xs' : 'text-sm')}>{name}</div>
+          <div className={cn('text-muted-foreground uppercase', isCompact ? 'text-[10px]' : 'text-xs')}>
             {symbol}
           </div>
         </div>
@@ -57,27 +60,27 @@ const createColumns = (
     header: 'Address',
     cell: ({ row }) => {
       const address = row.getValue('token_address') as string;
-      const short = `${address.slice(0, 8)}...${address.slice(-6)}`;
+      const short = isCompact ? `${address.slice(0, 6)}...${address.slice(-4)}` : `${address.slice(0, 8)}...${address.slice(-6)}`;
       return (
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-1 min-w-[100px]'>
           <a
             href={`https://solscan.io/token/${address}`}
             target='_blank'
             rel='noopener noreferrer'
-            className='text-primary font-mono text-sm hover:underline'
+            className={cn('text-primary font-mono hover:underline', isCompact ? 'text-[10px]' : 'text-sm')}
           >
             {short}
           </a>
           <Button
             variant='ghost'
             size='sm'
-            className='h-6 w-6 p-0'
+            className={cn('p-0', isCompact ? 'h-5 w-5' : 'h-6 w-6')}
             onClick={() => {
               navigator.clipboard.writeText(address);
               toast.success('Address copied to clipboard');
             }}
           >
-            <Copy className='h-3 w-3' />
+            <Copy className={cn(isCompact ? 'h-2.5 w-2.5' : 'h-3 w-3')} />
           </Button>
         </div>
       );
@@ -88,25 +91,30 @@ const createColumns = (
     header: 'Actions',
     cell: ({ row }) => {
       const token = row.original;
+      const btnSize = isCompact ? 'h-7 w-7' : 'h-8 w-8';
+      const iconSize = isCompact ? 'h-3 w-3' : 'h-4 w-4';
       return (
-        <div className='flex gap-2'>
+        <div className={cn('flex', isCompact ? 'gap-1' : 'gap-2')}>
           <Button
             variant='outline'
             size='sm'
+            className={cn('p-0', btnSize)}
             onClick={() => handleViewDetails(token.id)}
           >
-            <Eye className='h-4 w-4' />
+            <Eye className={iconSize} />
           </Button>
           <Button
             variant='outline'
             size='sm'
+            className={cn('p-0', btnSize)}
             onClick={() => downloadAxiomJson(token as any)}
           >
-            <Download className='h-4 w-4' />
+            <Download className={iconSize} />
           </Button>
           <Button
             variant='destructive'
             size='sm'
+            className={cn('p-0', btnSize)}
             onClick={() => {
               if (
                 window.confirm(
@@ -117,7 +125,7 @@ const createColumns = (
               }
             }}
           >
-            <Trash2 className='h-4 w-4' />
+            <Trash2 className={iconSize} />
           </Button>
         </div>
       );
@@ -127,7 +135,7 @@ const createColumns = (
     accessorKey: 'acronym',
     header: 'Acronym',
     cell: ({ row }) => (
-      <Badge variant='secondary' className='font-mono'>
+      <Badge variant='secondary' className={cn('font-mono', isCompact ? 'text-[10px] px-1.5 py-0' : 'text-xs px-2 py-0.5')}>
         {row.getValue('acronym')}
       </Badge>
     )
@@ -137,24 +145,24 @@ const createColumns = (
     header: 'Wallets',
     cell: ({ row }) => (
       <div className='text-center'>
-        <Badge variant='outline'>{row.getValue('wallets_found')} wallets</Badge>
+        <Badge variant='outline' className={cn(isCompact ? 'text-[10px] px-1.5 py-0' : 'text-xs px-2 py-0.5')}>{row.getValue('wallets_found')}</Badge>
       </div>
     )
   },
   {
     accessorKey: 'last_analysis_credits',
-    header: 'Credits Used For Latest Report',
+    header: isCompact ? 'Latest Credits' : 'Credits Used For Latest Report',
     cell: ({ row }) => (
-      <div className='font-semibold text-green-600'>
+      <div className={cn('font-semibold text-green-600', isCompact ? 'text-xs' : 'text-sm')}>
         {row.getValue('last_analysis_credits') || 0}
       </div>
     )
   },
   {
     accessorKey: 'credits_used',
-    header: 'Cumulative Credits Used',
+    header: isCompact ? 'Total Credits' : 'Cumulative Credits Used',
     cell: ({ row }) => (
-      <div className='font-semibold text-orange-500'>
+      <div className={cn('font-semibold text-orange-500', isCompact ? 'text-xs' : 'text-sm')}>
         {row.getValue('credits_used') || 0}
       </div>
     )
@@ -165,19 +173,7 @@ const createColumns = (
     cell: ({ row }) => {
       const timestamp = row.getValue('first_buy_timestamp') as string;
       return (
-        <div className='text-muted-foreground text-sm'>
-          {formatTimestamp(timestamp)}
-        </div>
-      );
-    }
-  },
-  {
-    accessorKey: 'analysis_timestamp',
-    header: 'Analyzed',
-    cell: ({ row }) => {
-      const timestamp = row.getValue('analysis_timestamp') as string;
-      return (
-        <div className='text-muted-foreground text-sm'>
+        <div className={cn('text-muted-foreground', isCompact ? 'text-[10px]' : 'text-xs')}>
           {formatTimestamp(timestamp)}
         </div>
       );
@@ -191,11 +187,21 @@ interface TokensTableProps {
 
 export function TokensTable({ tokens }: TokensTableProps) {
   const router = useRouter();
+  const { isCodexOpen } = useCodex();
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedToken, setSelectedToken] = useState<TokenDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [isCompactMode, setIsCompactMode] = useState(isCodexOpen);
+
+  // Delay compact mode change to sync with Codex animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsCompactMode(isCodexOpen);
+    }, isCodexOpen ? 0 : 100);
+    return () => clearTimeout(timer);
+  }, [isCodexOpen]);
 
   const handleViewDetails = async (id: number) => {
     setIsLoadingDetails(true);
@@ -232,7 +238,10 @@ export function TokensTable({ tokens }: TokensTableProps) {
     }
   };
 
-  const columns = createColumns(handleViewDetails, handleDelete);
+  const columns = useMemo(
+    () => createColumns(handleViewDetails, handleDelete, isCompactMode),
+    [isCompactMode]
+  );
 
   const table = useReactTable({
     data: tokens,
@@ -273,50 +282,52 @@ export function TokensTable({ tokens }: TokensTableProps) {
           </div>
         </div>
 
-        <div className='rounded-md border'>
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
+        <div className='rounded-md border overflow-hidden'>
+          <div className='overflow-x-auto max-w-full'>
+            <Table className='w-full'>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} className={cn('whitespace-nowrap transition-all duration-300', isCompactMode ? 'text-xs px-2 py-2' : 'text-sm px-3 py-3')}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-24 text-center'
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className={cn('transition-all duration-300', isCompactMode ? 'px-2 py-2' : 'px-3 py-3')}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className='h-24 text-center'
+                    >
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
         <div className='flex items-center justify-end space-x-2'>
           <Button
