@@ -183,9 +183,10 @@ const createColumns = (
 
 interface TokensTableProps {
   tokens: Token[];
+  onDelete?: (tokenId: number) => void;
 }
 
-export function TokensTable({ tokens }: TokensTableProps) {
+export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   const router = useRouter();
   const { isCodexOpen } = useCodex();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -219,20 +220,28 @@ export function TokensTable({ tokens }: TokensTableProps) {
 
   const handleDelete = async (id: number) => {
     setIsDeleting(true);
+
+    // Optimistically update UI immediately
+    if (onDelete) {
+      onDelete(id);
+    }
+
     try {
       const response = await fetch(`http://localhost:5001/api/tokens/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        cache: 'no-store'
       });
 
       if (!response.ok) {
         throw new Error('Failed to delete token');
       }
 
-      // Refresh the page to show updated data
-      router.refresh();
+      toast.success('Token deleted successfully');
     } catch (error) {
       console.error('Error deleting token:', error);
-      alert('Failed to delete token. Please try again.');
+      toast.error('Failed to delete token. Please try again.');
+      // On error, refresh to restore correct state
+      router.refresh();
     } finally {
       setIsDeleting(false);
     }

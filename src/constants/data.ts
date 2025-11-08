@@ -20,6 +20,14 @@ export const navItems: NavItem[] = [
     shortcut: ['t', 't'],
     isActive: false,
     items: []
+  },
+  {
+    title: 'Trash',
+    url: '/dashboard/trash',
+    icon: 'trash',
+    shortcut: [],
+    isActive: false,
+    items: []
   }
 ];
 

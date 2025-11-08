@@ -279,3 +279,46 @@ export async function getCodexWallets(): Promise<CodexResponse> {
 
   return res.json();
 }
+
+/**
+ * Get all deleted tokens (trash)
+ */
+export async function getDeletedTokens(): Promise<TokensResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/tokens/trash`, {
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch deleted tokens');
+  }
+
+  return res.json();
+}
+
+/**
+ * Restore a deleted token
+ */
+export async function restoreToken(tokenId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/tokens/${tokenId}/restore`, {
+    method: 'POST',
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to restore token');
+  }
+}
+
+/**
+ * Permanently delete a token
+ */
+export async function permanentDeleteToken(tokenId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/tokens/${tokenId}/permanent`, {
+    method: 'DELETE',
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to permanently delete token');
+  }
+}

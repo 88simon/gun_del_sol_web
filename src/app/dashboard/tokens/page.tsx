@@ -20,8 +20,8 @@ export default function TokensPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Fetch tokens and multi-token wallets from Flask API
+  const fetchData = () => {
+    setLoading(true);
     Promise.all([getTokens(), getMultiTokenWallets(2)])
       .then(([tokensData, walletsData]) => {
         setData(tokensData);
@@ -34,6 +34,22 @@ export default function TokensPage() {
         );
       })
       .finally(() => setLoading(false));
+  };
+
+  const handleTokenDelete = (tokenId: number) => {
+    // Optimistically update UI by removing the token from local state
+    if (data) {
+      setData({
+        ...data,
+        tokens: data.tokens.filter((token) => token.id !== tokenId),
+        total: data.total - 1
+      });
+    }
+  };
+
+  useEffect(() => {
+    // Fetch tokens and multi-token wallets from Flask API
+    fetchData();
   }, []);
 
   if (loading) {
@@ -190,7 +206,7 @@ export default function TokensPage() {
       )}
 
       {/* Tokens Table */}
-      <TokensTable tokens={data.tokens} />
+      <TokensTable tokens={data.tokens} onDelete={handleTokenDelete} />
     </div>
   );
 }
