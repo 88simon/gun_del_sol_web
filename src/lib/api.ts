@@ -27,6 +27,11 @@ export interface Wallet {
   average_buy_usd: number | null;
 }
 
+export interface WalletTag {
+  tag: string;
+  is_kol: boolean;
+}
+
 export interface TokenDetail extends Token {
   wallets: Wallet[];
   axiom_json: any[];
@@ -170,7 +175,7 @@ export async function getMultiTokenWallets(
 /**
  * Get tags for a wallet address
  */
-export async function getWalletTags(walletAddress: string): Promise<string[]> {
+export async function getWalletTags(walletAddress: string): Promise<WalletTag[]> {
   const res = await fetch(
     `${API_BASE_URL}/wallets/${walletAddress}/tags`,
     {
@@ -191,7 +196,8 @@ export async function getWalletTags(walletAddress: string): Promise<string[]> {
  */
 export async function addWalletTag(
   walletAddress: string,
-  tag: string
+  tag: string,
+  isKol: boolean = false
 ): Promise<void> {
   const res = await fetch(
     `${API_BASE_URL}/wallets/${walletAddress}/tags`,
@@ -200,7 +206,7 @@ export async function addWalletTag(
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ tag })
+      body: JSON.stringify({ tag, is_kol: isKol })
     }
   );
 

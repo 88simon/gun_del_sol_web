@@ -61,8 +61,8 @@ export default function AppSidebar() {
     <Sidebar collapsible='icon'>
       <SidebarHeader>
         <div className='flex items-center gap-2 px-4 py-2'>
-          <IconPhotoUp className='h-8 w-8' />
-          <div className='flex flex-col'>
+          <IconPhotoUp className='h-8 w-8 shrink-0' />
+          <div className='flex flex-col group-data-[collapsible=icon]:hidden'>
             <span className='text-lg font-semibold'>Gun Del Sol</span>
             <span className='text-muted-foreground text-xs'>
               Token Analysis
