@@ -19,6 +19,7 @@ export default function TokensPage() {
     useState<MultiTokenWalletsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastJobId, setLastJobId] = useState<string | null>(null);
 
   const fetchData = () => {
     setLoading(true);
@@ -51,6 +52,46 @@ export default function TokensPage() {
     // Fetch tokens and multi-token wallets from Flask API
     fetchData();
   }, []);
+
+  // Poll for active analysis jobs and auto-refresh when they complete
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch('http://localhost:5001/analysis');
+        const analysisData = await response.json();
+
+        if (analysisData.jobs && analysisData.jobs.length > 0) {
+          const latestJob = analysisData.jobs[0];
+
+          // Check if there's a new completed job we haven't seen yet
+          if (
+            latestJob.status === 'completed' &&
+            latestJob.job_id !== lastJobId
+          ) {
+            console.log('New analysis completed, refreshing data...');
+            setLastJobId(latestJob.job_id);
+            // Refresh the tokens list without showing loading state
+            Promise.all([getTokens(), getMultiTokenWallets(2)])
+              .then(([tokensData, walletsData]) => {
+                setData(tokensData);
+                setMultiWallets(walletsData);
+                toast.success(
+                  `Analysis complete: ${latestJob.token_name || 'Token'}`
+                );
+              })
+              .catch((err) => {
+                console.error('Failed to refresh data:', err);
+              });
+          }
+        }
+      } catch (err) {
+        // Silently fail - don't spam errors if backend is temporarily unavailable
+        console.error('Failed to check analysis status:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [lastJobId]);
 
   if (loading) {
     return (
@@ -107,9 +148,7 @@ export default function TokensPage() {
           <div className='text-muted-foreground text-sm font-medium'>
             Multi-Token Wallets
           </div>
-          <div className='text-3xl font-bold'>
-            {multiWallets?.total || 0}
-          </div>
+          <div className='text-3xl font-bold'>{multiWallets?.total || 0}</div>
         </div>
         <div className='bg-card rounded-lg border p-6'>
           <div className='text-muted-foreground text-sm font-medium'>
