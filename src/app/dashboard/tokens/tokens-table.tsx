@@ -16,10 +16,23 @@ import {
   getTokenById
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Trash2, Search, Copy } from 'lucide-react';
+import { Eye, Download, Trash2, Search, Copy, Tags, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -47,8 +60,15 @@ const createColumns = (
       const symbol = row.original.token_symbol || '-';
       return (
         <div className='min-w-[120px]'>
-          <div className={cn('font-medium', isCompact ? 'text-xs' : 'text-sm')}>{name}</div>
-          <div className={cn('text-muted-foreground uppercase', isCompact ? 'text-[10px]' : 'text-xs')}>
+          <div className={cn('font-medium', isCompact ? 'text-xs' : 'text-sm')}>
+            {name}
+          </div>
+          <div
+            className={cn(
+              'text-muted-foreground uppercase',
+              isCompact ? 'text-[10px]' : 'text-xs'
+            )}
+          >
             {symbol}
           </div>
         </div>
@@ -60,14 +80,19 @@ const createColumns = (
     header: 'Address',
     cell: ({ row }) => {
       const address = row.getValue('token_address') as string;
-      const short = isCompact ? `${address.slice(0, 6)}...${address.slice(-4)}` : `${address.slice(0, 8)}...${address.slice(-6)}`;
+      const short = isCompact
+        ? `${address.slice(0, 6)}...${address.slice(-4)}`
+        : `${address.slice(0, 8)}...${address.slice(-6)}`;
       return (
-        <div className='flex items-center gap-1 min-w-[100px]'>
+        <div className='flex min-w-[100px] items-center gap-1'>
           <a
             href={`https://solscan.io/token/${address}`}
             target='_blank'
             rel='noopener noreferrer'
-            className={cn('text-primary font-mono hover:underline', isCompact ? 'text-[10px]' : 'text-sm')}
+            className={cn(
+              'text-primary font-mono hover:underline',
+              isCompact ? 'text-[10px]' : 'text-sm'
+            )}
           >
             {short}
           </a>
@@ -135,17 +160,47 @@ const createColumns = (
     accessorKey: 'acronym',
     header: 'Acronym',
     cell: ({ row }) => (
-      <Badge variant='secondary' className={cn('font-mono', isCompact ? 'text-[10px] px-1.5 py-0' : 'text-xs px-2 py-0.5')}>
+      <Badge
+        variant='secondary'
+        className={cn(
+          'font-mono',
+          isCompact ? 'px-1.5 py-0 text-[10px]' : 'px-2 py-0.5 text-xs'
+        )}
+      >
         {row.getValue('acronym')}
       </Badge>
     )
   },
   {
     accessorKey: 'wallets_found',
-    header: 'Wallets',
+    header: () => (
+      <div className='flex items-center justify-center gap-1'>
+        <span>Wallets</span>
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className='text-muted-foreground h-3 w-3 cursor-help' />
+            </TooltipTrigger>
+            <TooltipContent className='max-w-xs'>
+              <p className='text-xs'>
+                Total wallets found in the first 500 transactions that spent
+                ≥$50. Top 10 earliest stored.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    ),
     cell: ({ row }) => (
       <div className='text-center'>
-        <Badge variant='outline' className={cn(isCompact ? 'text-[10px] px-1.5 py-0' : 'text-xs px-2 py-0.5')}>{row.getValue('wallets_found')}</Badge>
+        <Badge
+          variant='outline'
+          className={cn(
+            isCompact ? 'px-1.5 py-0 text-[10px]' : 'px-2 py-0.5 text-xs'
+          )}
+        >
+          {row.getValue('wallets_found')}
+        </Badge>
       </div>
     )
   },
@@ -153,7 +208,12 @@ const createColumns = (
     accessorKey: 'last_analysis_credits',
     header: isCompact ? 'Latest Credits' : 'Credits Used For Latest Report',
     cell: ({ row }) => (
-      <div className={cn('font-semibold text-green-600', isCompact ? 'text-xs' : 'text-sm')}>
+      <div
+        className={cn(
+          'font-semibold text-green-600',
+          isCompact ? 'text-xs' : 'text-sm'
+        )}
+      >
         {row.getValue('last_analysis_credits') || 0}
       </div>
     )
@@ -162,7 +222,12 @@ const createColumns = (
     accessorKey: 'credits_used',
     header: isCompact ? 'Total Credits' : 'Cumulative Credits Used',
     cell: ({ row }) => (
-      <div className={cn('font-semibold text-orange-500', isCompact ? 'text-xs' : 'text-sm')}>
+      <div
+        className={cn(
+          'font-semibold text-orange-500',
+          isCompact ? 'text-xs' : 'text-sm'
+        )}
+      >
         {row.getValue('credits_used') || 0}
       </div>
     )
@@ -173,7 +238,12 @@ const createColumns = (
     cell: ({ row }) => {
       const timestamp = row.getValue('first_buy_timestamp') as string;
       return (
-        <div className={cn('text-muted-foreground', isCompact ? 'text-[10px]' : 'text-xs')}>
+        <div
+          className={cn(
+            'text-muted-foreground',
+            isCompact ? 'text-[10px]' : 'text-xs'
+          )}
+        >
           {formatTimestamp(timestamp)}
         </div>
       );
@@ -198,9 +268,12 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
 
   // Delay compact mode change to sync with Codex animation
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsCompactMode(isCodexOpen);
-    }, isCodexOpen ? 0 : 100);
+    const timer = setTimeout(
+      () => {
+        setIsCompactMode(isCodexOpen);
+      },
+      isCodexOpen ? 0 : 100
+    );
     return () => clearTimeout(timer);
   }, [isCodexOpen]);
 
@@ -264,13 +337,16 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: (row, columnId, filterValue) => {
       const search = filterValue.toLowerCase();
-      // Search in token address, token name, token symbol, acronym
+      // Search in token address, token name, token symbol, acronym, and wallet addresses
       const tokenData = row.original;
       return (
         tokenData.token_address?.toLowerCase().includes(search) ||
         tokenData.token_name?.toLowerCase().includes(search) ||
         tokenData.token_symbol?.toLowerCase().includes(search) ||
-        tokenData.acronym?.toLowerCase().includes(search)
+        tokenData.acronym?.toLowerCase().includes(search) ||
+        tokenData.wallet_addresses?.some((addr) =>
+          addr.toLowerCase().includes(search)
+        )
       );
     }
   });
@@ -281,7 +357,7 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
         {/* Search Input */}
         <div className='flex items-center gap-2'>
           <div className='relative flex-1'>
-            <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+            <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
             <Input
               placeholder='Search by token address or wallet address...'
               value={globalFilter ?? ''}
@@ -291,14 +367,22 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
           </div>
         </div>
 
-        <div className='rounded-md border overflow-hidden'>
-          <div className='overflow-x-auto max-w-full'>
+        <div className='overflow-hidden rounded-md border'>
+          <div className='max-w-full overflow-x-auto'>
             <Table className='w-full'>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} className={cn('whitespace-nowrap transition-all duration-300', isCompactMode ? 'text-xs px-2 py-2' : 'text-sm px-3 py-3')}>
+                      <TableHead
+                        key={header.id}
+                        className={cn(
+                          'whitespace-nowrap transition-all duration-300',
+                          isCompactMode
+                            ? 'px-2 py-2 text-xs'
+                            : 'px-3 py-3 text-sm'
+                        )}
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -315,7 +399,13 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
                   table.getRowModel().rows.map((row) => (
                     <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className={cn('transition-all duration-300', isCompactMode ? 'px-2 py-2' : 'px-3 py-3')}>
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            'transition-all duration-300',
+                            isCompactMode ? 'px-2 py-2' : 'px-3 py-3'
+                          )}
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()

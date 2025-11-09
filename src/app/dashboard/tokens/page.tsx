@@ -12,6 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { WalletTags } from '@/components/wallet-tags';
+import {
+  AdditionalTagsPopover,
+  WalletAddressWithBotIndicator
+} from '@/components/additional-tags';
 
 export default function TokensPage() {
   const [data, setData] = useState<TokensResponse | null>(null);
@@ -187,17 +191,21 @@ export default function TokensPage() {
                   <tr key={wallet.wallet_address} className='border-b'>
                     <td className='py-3 font-mono'>
                       <div className='flex items-center gap-2'>
-                        <a
-                          href={`https://solscan.io/account/${wallet.wallet_address}`}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='text-primary hover:underline'
+                        <WalletAddressWithBotIndicator
+                          walletAddress={wallet.wallet_address}
                         >
-                          {wallet.wallet_address.substring(0, 8)}...
-                          {wallet.wallet_address.substring(
-                            wallet.wallet_address.length - 6
-                          )}
-                        </a>
+                          <a
+                            href={`https://solscan.io/account/${wallet.wallet_address}`}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-primary hover:underline'
+                          >
+                            {wallet.wallet_address.substring(0, 8)}...
+                            {wallet.wallet_address.substring(
+                              wallet.wallet_address.length - 6
+                            )}
+                          </a>
+                        </WalletAddressWithBotIndicator>
                         <Button
                           variant='ghost'
                           size='sm'
@@ -214,7 +222,13 @@ export default function TokensPage() {
                       </div>
                     </td>
                     <td className='py-3'>
-                      <WalletTags walletAddress={wallet.wallet_address} />
+                      <div className='flex items-center gap-2'>
+                        <WalletTags walletAddress={wallet.wallet_address} />
+                        <AdditionalTagsPopover
+                          walletAddress={wallet.wallet_address}
+                          compact
+                        />
+                      </div>
                     </td>
                     <td className='py-3 text-center'>
                       <span className='bg-primary text-primary-foreground rounded-full px-3 py-1 text-sm font-bold'>

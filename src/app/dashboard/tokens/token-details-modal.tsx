@@ -27,6 +27,10 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WalletTags } from '@/components/wallet-tags';
+import {
+  AdditionalTagsPopover,
+  WalletAddressWithBotIndicator
+} from '@/components/additional-tags';
 
 interface TokenDetailsModalProps {
   token: TokenDetail | null;
@@ -185,11 +189,19 @@ export function TokenDetailsModal({
                           #{index + 1}
                         </TableCell>
                         <TableCell className='font-mono text-sm'>
-                          {wallet.wallet_address}
+                          <WalletAddressWithBotIndicator
+                            walletAddress={wallet.wallet_address}
+                          >
+                            {wallet.wallet_address}
+                          </WalletAddressWithBotIndicator>
                         </TableCell>
                         <TableCell className='text-right'>
                           <div className='flex justify-end gap-2'>
                             <WalletTags walletAddress={wallet.wallet_address} />
+                            <AdditionalTagsPopover
+                              walletId={wallet.id}
+                              walletAddress={wallet.wallet_address}
+                            />
                             <Button
                               variant='ghost'
                               size='sm'
@@ -306,11 +318,22 @@ export function TokenDetailsModal({
                                   #{index + 1}
                                 </TableCell>
                                 <TableCell className='font-mono text-xs'>
-                                  {wallet.wallet_address}
+                                  <WalletAddressWithBotIndicator
+                                    walletAddress={wallet.wallet_address}
+                                  >
+                                    {wallet.wallet_address}
+                                  </WalletAddressWithBotIndicator>
                                 </TableCell>
                                 <TableCell className='text-right'>
                                   <div className='flex justify-end gap-1'>
-                                    <WalletTags walletAddress={wallet.wallet_address} />
+                                    <WalletTags
+                                      walletAddress={wallet.wallet_address}
+                                    />
+                                    <AdditionalTagsPopover
+                                      walletId={wallet.id}
+                                      walletAddress={wallet.wallet_address}
+                                      compact
+                                    />
                                     <Button
                                       variant='ghost'
                                       size='sm'

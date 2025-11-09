@@ -16,6 +16,7 @@ export interface Token {
   wallets_found: number;
   credits_used?: number;
   last_analysis_credits?: number;
+  wallet_addresses?: string[];
 }
 
 export interface Wallet {
@@ -184,13 +185,12 @@ export async function getMultiTokenWallets(
 /**
  * Get tags for a wallet address
  */
-export async function getWalletTags(walletAddress: string): Promise<WalletTag[]> {
-  const res = await fetch(
-    `${API_BASE_URL}/wallets/${walletAddress}/tags`,
-    {
-      cache: 'no-store'
-    }
-  );
+export async function getWalletTags(
+  walletAddress: string
+): Promise<WalletTag[]> {
+  const res = await fetch(`${API_BASE_URL}/wallets/${walletAddress}/tags`, {
+    cache: 'no-store'
+  });
 
   if (!res.ok) {
     throw new Error('Failed to fetch wallet tags');
@@ -208,16 +208,13 @@ export async function addWalletTag(
   tag: string,
   isKol: boolean = false
 ): Promise<void> {
-  const res = await fetch(
-    `${API_BASE_URL}/wallets/${walletAddress}/tags`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ tag, is_kol: isKol })
-    }
-  );
+  const res = await fetch(`${API_BASE_URL}/wallets/${walletAddress}/tags`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ tag, is_kol: isKol })
+  });
 
   if (!res.ok) {
     const error = await res.json();
@@ -232,16 +229,13 @@ export async function removeWalletTag(
   walletAddress: string,
   tag: string
 ): Promise<void> {
-  const res = await fetch(
-    `${API_BASE_URL}/wallets/${walletAddress}/tags`,
-    {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ tag })
-    }
-  );
+  const res = await fetch(`${API_BASE_URL}/wallets/${walletAddress}/tags`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ tag })
+  });
 
   if (!res.ok) {
     const error = await res.json();
