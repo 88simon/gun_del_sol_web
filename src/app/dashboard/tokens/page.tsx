@@ -249,6 +249,14 @@ export default function TokensPage() {
             <div className='text-muted-foreground text-sm font-medium'>
               API Request Settings
             </div>
+            <details className='mt-2'>
+              <summary className='text-muted-foreground hover:text-foreground cursor-pointer text-[10px]'>
+                View Current Settings in JSON Format
+              </summary>
+              <pre className='text-muted-foreground bg-muted mt-2 rounded p-2 text-[9px]'>
+                {JSON.stringify(apiSettings, null, 2)}
+              </pre>
+            </details>
           </div>
           <div className='space-y-2'>
             {/* Transaction Limit */}

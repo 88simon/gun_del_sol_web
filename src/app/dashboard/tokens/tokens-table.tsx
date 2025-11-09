@@ -65,7 +65,7 @@ const createColumns = (
           </div>
           <div
             className={cn(
-              'text-muted-foreground uppercase',
+              'text-muted-foreground',
               isCompact ? 'text-[10px]' : 'text-xs'
             )}
           >
@@ -80,26 +80,26 @@ const createColumns = (
     header: 'Address',
     cell: ({ row }) => {
       const address = row.getValue('token_address') as string;
-      const short = isCompact
-        ? `${address.slice(0, 6)}...${address.slice(-4)}`
-        : `${address.slice(0, 8)}...${address.slice(-6)}`;
       return (
-        <div className='flex min-w-[100px] items-center gap-1'>
+        <div className='flex items-center gap-1'>
           <a
             href={`https://solscan.io/token/${address}`}
             target='_blank'
             rel='noopener noreferrer'
             className={cn(
-              'text-primary font-mono hover:underline',
-              isCompact ? 'text-[10px]' : 'text-sm'
+              'text-primary font-mono break-all hover:underline',
+              isCompact ? 'text-[9px]' : 'text-[10px]'
             )}
           >
-            {short}
+            {address}
           </a>
           <Button
             variant='ghost'
             size='sm'
-            className={cn('p-0', isCompact ? 'h-5 w-5' : 'h-6 w-6')}
+            className={cn(
+              'flex-shrink-0 p-0',
+              isCompact ? 'h-5 w-5' : 'h-6 w-6'
+            )}
             onClick={() => {
               navigator.clipboard.writeText(address);
               toast.success('Address copied to clipboard');
@@ -157,21 +157,6 @@ const createColumns = (
     }
   },
   {
-    accessorKey: 'acronym',
-    header: 'Acronym',
-    cell: ({ row }) => (
-      <Badge
-        variant='secondary'
-        className={cn(
-          'font-mono',
-          isCompact ? 'px-1.5 py-0 text-[10px]' : 'px-2 py-0.5 text-xs'
-        )}
-      >
-        {row.getValue('acronym')}
-      </Badge>
-    )
-  },
-  {
     accessorKey: 'wallets_found',
     header: () => (
       <div className='flex items-center justify-center gap-1'>
@@ -205,6 +190,23 @@ const createColumns = (
     )
   },
   {
+    accessorKey: 'first_buy_timestamp',
+    header: 'First Filtered Buy',
+    cell: ({ row }) => {
+      const timestamp = row.getValue('first_buy_timestamp') as string;
+      return (
+        <div
+          className={cn(
+            'text-muted-foreground',
+            isCompact ? 'text-[10px]' : 'text-xs'
+          )}
+        >
+          {formatTimestamp(timestamp)}
+        </div>
+      );
+    }
+  },
+  {
     accessorKey: 'last_analysis_credits',
     header: isCompact ? 'Latest Credits' : 'Credits Used For Latest Report',
     cell: ({ row }) => (
@@ -231,23 +233,6 @@ const createColumns = (
         {row.getValue('credits_used') || 0}
       </div>
     )
-  },
-  {
-    accessorKey: 'first_buy_timestamp',
-    header: 'First Buy',
-    cell: ({ row }) => {
-      const timestamp = row.getValue('first_buy_timestamp') as string;
-      return (
-        <div
-          className={cn(
-            'text-muted-foreground',
-            isCompact ? 'text-[10px]' : 'text-xs'
-          )}
-        >
-          {formatTimestamp(timestamp)}
-        </div>
-      );
-    }
   }
 ];
 
@@ -337,13 +322,12 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: (row, columnId, filterValue) => {
       const search = filterValue.toLowerCase();
-      // Search in token address, token name, token symbol, acronym, and wallet addresses
+      // Search in token address, token name, token symbol, and wallet addresses
       const tokenData = row.original;
       return (
         tokenData.token_address?.toLowerCase().includes(search) ||
         tokenData.token_name?.toLowerCase().includes(search) ||
         tokenData.token_symbol?.toLowerCase().includes(search) ||
-        tokenData.acronym?.toLowerCase().includes(search) ||
         tokenData.wallet_addresses?.some((addr) =>
           addr.toLowerCase().includes(search)
         )
