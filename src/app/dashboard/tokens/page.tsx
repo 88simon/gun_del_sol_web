@@ -56,6 +56,7 @@ export default function TokensPage() {
     maxRetries: 3
   };
   const [apiSettings, setApiSettings] = useState(defaultApiSettings);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Load API settings from backend on mount
   useEffect(() => {
@@ -63,15 +64,19 @@ export default function TokensPage() {
       .then((res) => res.json())
       .then((settings) => {
         setApiSettings(settings);
+        setSettingsLoaded(true);
       })
       .catch((err) => {
         console.error('Failed to load API settings:', err);
+        setSettingsLoaded(true);
       });
   }, []);
 
-  // Update backend whenever settings change
+  // Update backend whenever settings change (but not on initial load)
   useEffect(() => {
-    // Debounce to avoid too many requests
+    if (!settingsLoaded) return; // Skip initial load
+
+    // Debounce to avoid too many requests (short delay for faster updates)
     const timer = setTimeout(() => {
       fetch('http://localhost:5001/api/settings', {
         method: 'POST',
@@ -81,14 +86,20 @@ export default function TokensPage() {
         .then((res) => res.json())
         .then((data) => {
           console.log('[Settings] Updated:', data.settings);
+          // Show toast notification when settings are saved
+          toast.success('Settings saved', {
+            description: 'Will be used for next analysis',
+            duration: 2000
+          });
         })
         .catch((err) => {
           console.error('[Settings] Failed to update:', err);
+          toast.error('Failed to save settings');
         });
-    }, 500);
+    }, 150);
 
     return () => clearTimeout(timer);
-  }, [apiSettings]);
+  }, [apiSettings, settingsLoaded]);
 
   const fetchData = () => {
     setLoading(true);
