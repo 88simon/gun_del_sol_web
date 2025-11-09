@@ -316,3 +316,42 @@ export async function permanentDeleteToken(tokenId: number): Promise<void> {
     throw new Error('Failed to permanently delete token');
   }
 }
+
+/**
+ * API Settings interface
+ */
+export interface ApiSettings {
+  transactionLimit: number;
+  minUsdFilter: number;
+  maxWalletsToStore: number;
+  apiRateDelay: number;
+  maxCreditsPerAnalysis: number;
+  maxRetries: number;
+}
+
+/**
+ * Analyze a token with custom API settings
+ */
+export async function analyzeToken(
+  tokenAddress: string,
+  apiSettings: ApiSettings
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/analyze/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      address: tokenAddress,
+      api_settings: apiSettings
+    }),
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to analyze token');
+  }
+
+  return res.json();
+}

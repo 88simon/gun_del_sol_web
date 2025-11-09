@@ -57,6 +57,39 @@ export default function TokensPage() {
   };
   const [apiSettings, setApiSettings] = useState(defaultApiSettings);
 
+  // Load API settings from backend on mount
+  useEffect(() => {
+    fetch('http://localhost:5001/api/settings', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((settings) => {
+        setApiSettings(settings);
+      })
+      .catch((err) => {
+        console.error('Failed to load API settings:', err);
+      });
+  }, []);
+
+  // Update backend whenever settings change
+  useEffect(() => {
+    // Debounce to avoid too many requests
+    const timer = setTimeout(() => {
+      fetch('http://localhost:5001/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiSettings)
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('[Settings] Updated:', data.settings);
+        })
+        .catch((err) => {
+          console.error('[Settings] Failed to update:', err);
+        });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [apiSettings]);
+
   const fetchData = () => {
     setLoading(true);
     Promise.all([getTokens(), getMultiTokenWallets(2)])
