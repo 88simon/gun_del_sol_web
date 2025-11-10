@@ -56,7 +56,7 @@ export default function TokensPage() {
   const defaultApiSettings = {
     transactionLimit: 500,
     minUsdFilter: 50,
-    maxWalletsToStore: 10,
+    walletCount: 10,
     apiRateDelay: 100,
     maxCreditsPerAnalysis: 1000,
     maxRetries: 3
@@ -720,10 +720,10 @@ export default function TokensPage() {
                 </div>
               </div>
 
-              {/* Max Wallets to Store */}
+              {/* Wallet Count */}
               <div className='flex items-center justify-between'>
                 <Label className='text-muted-foreground text-[10px]'>
-                  Max Wallets
+                  Wallet Count
                 </Label>
                 <div className='flex items-center gap-1'>
                   <div className='flex items-center gap-0.5'>
@@ -734,10 +734,7 @@ export default function TokensPage() {
                       onClick={() =>
                         setApiSettings({
                           ...apiSettings,
-                          maxWalletsToStore: Math.max(
-                            5,
-                            apiSettings.maxWalletsToStore - 5
-                          )
+                          walletCount: Math.max(5, apiSettings.walletCount - 5)
                         })
                       }
                     >
@@ -745,16 +742,16 @@ export default function TokensPage() {
                     </Button>
                     <Input
                       type='number'
-                      value={apiSettings.maxWalletsToStore}
+                      value={apiSettings.walletCount}
                       onChange={(e) =>
                         setApiSettings({
                           ...apiSettings,
-                          maxWalletsToStore: parseInt(e.target.value) || 0
+                          walletCount: parseInt(e.target.value) || 0
                         })
                       }
                       onMouseDown={(e) => {
                         const startX = e.clientX;
-                        const startValue = apiSettings.maxWalletsToStore;
+                        const startValue = apiSettings.walletCount;
                         const handleMouseMove = (moveEvent: MouseEvent) => {
                           const diff =
                             Math.floor((moveEvent.clientX - startX) / 10) * 5;
@@ -764,7 +761,7 @@ export default function TokensPage() {
                           );
                           setApiSettings({
                             ...apiSettings,
-                            maxWalletsToStore: newValue
+                            walletCount: newValue
                           });
                         };
                         const handleMouseUp = () => {
@@ -789,10 +786,7 @@ export default function TokensPage() {
                       onClick={() =>
                         setApiSettings({
                           ...apiSettings,
-                          maxWalletsToStore: Math.min(
-                            50,
-                            apiSettings.maxWalletsToStore + 5
-                          )
+                          walletCount: Math.min(50, apiSettings.walletCount + 5)
                         })
                       }
                     >
@@ -806,7 +800,7 @@ export default function TokensPage() {
                     onClick={() =>
                       setApiSettings({
                         ...apiSettings,
-                        maxWalletsToStore: defaultApiSettings.maxWalletsToStore
+                        walletCount: defaultApiSettings.walletCount
                       })
                     }
                     title='Reset to default'

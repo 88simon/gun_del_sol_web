@@ -325,7 +325,7 @@ export async function permanentDeleteToken(tokenId: number): Promise<void> {
 export interface ApiSettings {
   transactionLimit: number;
   minUsdFilter: number;
-  maxWalletsToStore: number;
+  walletCount: number;
   apiRateDelay: number;
   maxCreditsPerAnalysis: number;
   maxRetries: number;
