@@ -34,6 +34,7 @@ import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WalletTagsProvider } from '@/contexts/WalletTagsContext';
+import { useAnalysisNotifications } from '@/hooks/useAnalysisNotifications';
 
 export default function TokensPage() {
   const [data, setData] = useState<TokensResponse | null>(null);
@@ -43,6 +44,7 @@ export default function TokensPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastJobId, setLastJobId] = useState<string | null>(null);
   const [hasActiveJobs, setHasActiveJobs] = useState(false);
+  const [pollsSinceLastActive, setPollsSinceLastActive] = useState(0);
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -130,6 +132,15 @@ export default function TokensPage() {
       .finally(() => setLoading(false));
   };
 
+  // WebSocket notifications for real-time analysis updates
+  useAnalysisNotifications((data) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[WebSocket] Analysis completed, refreshing data...', data);
+    }
+    // Refresh the tokens list when analysis completes
+    fetchData();
+  });
+
   const handleTokenDelete = (tokenId: number) => {
     // Optimistically update UI by removing the token from local state
     if (data) {
@@ -195,10 +206,15 @@ export default function TokensPage() {
       }
 
       // OPTIMIZATION: Only poll if there are active jobs or if we haven't checked recently
-      if (!hasActiveJobs) {
+      // Check every 10th poll even when no active jobs (to catch new analyses started from AHK)
+      if (!hasActiveJobs && pollsSinceLastActive < 10) {
         console.log('[Poll] No active jobs, skipping poll');
+        setPollsSinceLastActive(pollsSinceLastActive + 1);
         return;
       }
+
+      // Reset counter when we do poll
+      setPollsSinceLastActive(0);
 
       try {
         const response = await fetch('http://localhost:5001/analysis');
@@ -431,7 +447,7 @@ export default function TokensPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className='grid gap-4 md:grid-cols-4'>
+        <div className='grid gap-4 md:grid-cols-3'>
           <div className='bg-card rounded-lg border p-6'>
             <div className='flex items-center justify-between'>
               <div className='text-muted-foreground text-sm font-medium'>
@@ -483,6 +499,18 @@ export default function TokensPage() {
               </div>
             </div>
             <div className='text-3xl font-bold'>{filteredTokens.length}</div>
+            <div className='mt-3 border-t pt-3'>
+              <div className='text-muted-foreground mb-1 text-xs font-medium'>
+                Latest Analysis
+              </div>
+              <div className='text-sm font-medium'>
+                {data.tokens[0]
+                  ? new Date(
+                      data.tokens[0].analysis_timestamp.replace(' ', 'T') + 'Z'
+                    ).toLocaleString()
+                  : '-'}
+              </div>
+            </div>
           </div>
           <div className='bg-card rounded-lg border p-6'>
             <div className='mb-3'>
@@ -1077,18 +1105,6 @@ export default function TokensPage() {
               Multi-Token Wallets
             </div>
             <div className='text-3xl font-bold'>{multiWallets?.total || 0}</div>
-          </div>
-          <div className='bg-card rounded-lg border p-6'>
-            <div className='text-muted-foreground text-sm font-medium'>
-              Latest Analysis
-            </div>
-            <div className='text-xl font-bold'>
-              {data.tokens[0]
-                ? new Date(
-                    data.tokens[0].analysis_timestamp.replace(' ', 'T') + 'Z'
-                  ).toLocaleString()
-                : '-'}
-            </div>
           </div>
         </div>
 
