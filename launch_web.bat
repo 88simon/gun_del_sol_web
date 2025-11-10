@@ -25,11 +25,15 @@ if %ERRORLEVEL% NEQ 0 (
     echo pnpm is not installed. Installing via npm...
     echo.
     call npm install -g pnpm
+    echo.
+    REM Verify pnpm installation
+    where pnpm >nul 2>nul
     if %ERRORLEVEL% NEQ 0 (
-        echo.
-        echo WARNING: Failed to install pnpm globally
-        echo Falling back to npm...
+        echo WARNING: pnpm not available after install, falling back to npm
         set USE_NPM=1
+    ) else (
+        echo pnpm installed successfully
+        set USE_NPM=0
     )
 ) else (
     set USE_NPM=0
