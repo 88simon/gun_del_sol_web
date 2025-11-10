@@ -1,11 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getWalletTags, addWalletTag, removeWalletTag, WalletTag } from '@/lib/api';
+import {
+  getWalletTags,
+  addWalletTag,
+  removeWalletTag,
+  WalletTag
+} from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Plus, Tag } from 'lucide-react';
 import { toast } from 'sonner';
+import { useWalletTags } from '@/contexts/WalletTagsContext';
 
 interface WalletTagsProps {
   walletAddress: string;
@@ -14,8 +20,15 @@ interface WalletTagsProps {
 
 type InputStep = 'tag' | 'kol';
 
-export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) {
-  const [tags, setTags] = useState<WalletTag[]>([]);
+export function WalletTags({
+  walletAddress,
+  compact = false
+}: WalletTagsProps) {
+  const { tags: contextTags } = useWalletTags(walletAddress);
+  // Filter out additional tags (bot, whale, insider) - those are managed by AdditionalTagsPopover
+  const tags = contextTags.filter(
+    (t) => !['bot', 'whale', 'insider'].includes(t.tag.toLowerCase())
+  );
   const [newTag, setNewTag] = useState('');
   const [kolValue, setKolValue] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
@@ -23,10 +36,6 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
   const [inputStep, setInputStep] = useState<InputStep>('tag');
   const inputRef = useRef<HTMLDivElement>(null);
   const kolToggleRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadTags();
-  }, [walletAddress]);
 
   // Auto-focus the KOL toggle when it appears
   useEffect(() => {
@@ -38,7 +47,10 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
   // Close input when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
         setShowInput(false);
         setNewTag('');
         setKolValue(false);
@@ -55,15 +67,6 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
     };
   }, [showInput]);
 
-  const loadTags = async () => {
-    try {
-      const walletTags = await getWalletTags(walletAddress);
-      setTags(walletTags);
-    } catch (error) {
-      console.error('Failed to load tags:', error);
-    }
-  };
-
   const handleTagNameSubmit = () => {
     if (!newTag.trim()) return;
     // Move to KOL step and default to Y (true)
@@ -75,12 +78,15 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
     setLoading(true);
     try {
       await addWalletTag(walletAddress, newTag.trim(), kolValue);
-      setTags([...tags, { tag: newTag.trim(), is_kol: kolValue }]);
       setNewTag('');
       setKolValue(false);
       setInputStep('tag');
       setShowInput(false);
       toast.success('Tag added');
+      // Trigger event to refresh context
+      window.dispatchEvent(
+        new CustomEvent('walletTagsChanged', { detail: { walletAddress } })
+      );
     } catch (error: any) {
       toast.error(error.message || 'Failed to add tag');
     } finally {
@@ -92,8 +98,11 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
     setLoading(true);
     try {
       await removeWalletTag(walletAddress, tagName);
-      setTags(tags.filter((t) => t.tag !== tagName));
       toast.success('Tag removed');
+      // Trigger event to refresh context
+      window.dispatchEvent(
+        new CustomEvent('walletTagsChanged', { detail: { walletAddress } })
+      );
     } catch (error: any) {
       toast.error(error.message || 'Failed to remove tag');
     } finally {
@@ -109,7 +118,7 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
             key={tagObj.tag}
             className={`rounded px-2 py-0.5 text-xs ${
               tagObj.is_kol
-                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold'
+                ? 'bg-amber-500/20 font-semibold text-amber-700 dark:text-amber-400'
                 : 'bg-primary/10 text-primary'
             }`}
           >
@@ -131,7 +140,7 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
           key={tagObj.tag}
           className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${
             tagObj.is_kol
-              ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold'
+              ? 'bg-amber-500/20 font-semibold text-amber-700 dark:text-amber-400'
               : 'bg-primary/10 text-primary'
           }`}
         >
@@ -185,7 +194,7 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
             <>
               <div
                 ref={kolToggleRef}
-                className='flex items-center gap-1 rounded border border-input bg-background px-2 h-6'
+                className='border-input bg-background flex h-6 items-center gap-1 rounded border px-2'
                 onKeyDown={async (e) => {
                   if (e.key === 'Enter') {
                     handleKolSubmit();
@@ -198,12 +207,17 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
                     setLoading(true);
                     try {
                       await addWalletTag(walletAddress, newTag.trim(), true);
-                      setTags([...tags, { tag: newTag.trim(), is_kol: true }]);
                       setNewTag('');
                       setKolValue(false);
                       setInputStep('tag');
                       setShowInput(false);
                       toast.success('Tag added');
+                      // Trigger event to refresh context
+                      window.dispatchEvent(
+                        new CustomEvent('walletTagsChanged', {
+                          detail: { walletAddress }
+                        })
+                      );
                     } catch (error: any) {
                       toast.error(error.message || 'Failed to add tag');
                     } finally {
@@ -213,12 +227,17 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
                     setLoading(true);
                     try {
                       await addWalletTag(walletAddress, newTag.trim(), false);
-                      setTags([...tags, { tag: newTag.trim(), is_kol: false }]);
                       setNewTag('');
                       setKolValue(false);
                       setInputStep('tag');
                       setShowInput(false);
                       toast.success('Tag added');
+                      // Trigger event to refresh context
+                      window.dispatchEvent(
+                        new CustomEvent('walletTagsChanged', {
+                          detail: { walletAddress }
+                        })
+                      );
                     } catch (error: any) {
                       toast.error(error.message || 'Failed to add tag');
                     } finally {
@@ -232,12 +251,12 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
                 }}
                 tabIndex={0}
               >
-                <span className='text-xs text-muted-foreground'>KOL?</span>
+                <span className='text-muted-foreground text-xs'>KOL?</span>
                 <button
                   type='button'
-                  className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                  className={`rounded px-2 py-0.5 text-xs transition-colors ${
                     kolValue
-                      ? 'bg-green-500/20 text-green-700 dark:text-green-400 font-semibold'
+                      ? 'bg-green-500/20 font-semibold text-green-700 dark:text-green-400'
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                   onClick={() => setKolValue(true)}
@@ -247,9 +266,9 @@ export function WalletTags({ walletAddress, compact = false }: WalletTagsProps) 
                 </button>
                 <button
                   type='button'
-                  className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                  className={`rounded px-2 py-0.5 text-xs transition-colors ${
                     !kolValue
-                      ? 'bg-red-500/20 text-red-700 dark:text-red-400 font-semibold'
+                      ? 'bg-red-500/20 font-semibold text-red-700 dark:text-red-400'
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
                   onClick={() => setKolValue(false)}

@@ -26,6 +26,7 @@ export interface Wallet {
   total_usd: number | null;
   transaction_count: number | null;
   average_buy_usd: number | null;
+  wallet_balance_usd: number | null;
 }
 
 export interface WalletTag {
@@ -64,6 +65,7 @@ export interface MultiTokenWallet {
   token_names: string[];
   token_addresses: string[];
   token_ids: number[];
+  wallet_balance_usd: number | null;
 }
 
 export interface MultiTokenWalletsResponse {
