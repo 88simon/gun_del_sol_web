@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useWalletTags } from '@/contexts/WalletTagsContext';
 
 interface AdditionalTagsPopoverProps {
   walletId?: number;
@@ -24,28 +25,15 @@ export function AdditionalTagsPopover({
   walletAddress,
   compact = false
 }: AdditionalTagsPopoverProps) {
-  const [tags, setTags] = useState<Set<string>>(new Set());
+  const { tags: allTags } = useWalletTags(walletAddress);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadTags();
-  }, [walletAddress]);
-
-  const loadTags = async () => {
-    try {
-      const walletTags = await getWalletTags(walletAddress);
-      const additionalTags = new Set(
-        walletTags
-          .filter((t) =>
-            ['bot', 'whale', 'insider'].includes(t.tag.toLowerCase())
-          )
-          .map((t) => t.tag.toLowerCase())
-      );
-      setTags(additionalTags);
-    } catch (error) {
-      console.error('Failed to load tags:', error);
-    }
-  };
+  // Extract only additional tags (bot, whale, insider) from context
+  const tags = new Set(
+    allTags
+      .filter((t) => ['bot', 'whale', 'insider'].includes(t.tag.toLowerCase()))
+      .map((t) => t.tag.toLowerCase())
+  );
 
   const toggleTag = async (tag: string) => {
     setLoading(true);
@@ -53,25 +41,15 @@ export function AdditionalTagsPopover({
       const tagLower = tag.toLowerCase();
       if (tags.has(tagLower)) {
         await removeWalletTag(walletAddress, tag);
-        setTags((prev) => {
-          const next = new Set(prev);
-          next.delete(tagLower);
-          return next;
-        });
         toast.success(`Removed ${tag} tag`);
-        // Trigger a custom event to notify other components
-        window.dispatchEvent(
-          new CustomEvent('walletTagsChanged', { detail: { walletAddress } })
-        );
       } else {
         await addWalletTag(walletAddress, tag, false);
-        setTags((prev) => new Set(prev).add(tagLower));
         toast.success(`Added ${tag} tag`);
-        // Trigger a custom event to notify other components
-        window.dispatchEvent(
-          new CustomEvent('walletTagsChanged', { detail: { walletAddress } })
-        );
       }
+      // Trigger a custom event to notify the context to refresh
+      window.dispatchEvent(
+        new CustomEvent('walletTagsChanged', { detail: { walletAddress } })
+      );
     } catch (error: any) {
       toast.error(error.message || `Failed to update ${tag} tag`);
     } finally {
@@ -177,56 +155,8 @@ export function WalletAddressWithBotIndicator({
   children: React.ReactNode;
   onTagsChange?: () => void;
 }) {
-  const [isBot, setIsBot] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    checkBotTag();
-  }, [walletAddress]);
-
-  const checkBotTag = async () => {
-    setIsLoading(true);
-    try {
-      const walletTags = await getWalletTags(walletAddress);
-      const hasBot = walletTags.some((t) => t.tag.toLowerCase() === 'bot');
-      setIsBot(hasBot);
-    } catch (error) {
-      console.error('Failed to check bot tag:', error);
-      setIsBot(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Listen for tag changes
-  useEffect(() => {
-    const handleTagsChanged = (event: CustomEvent) => {
-      if (event.detail.walletAddress === walletAddress) {
-        checkBotTag();
-      }
-    };
-
-    window.addEventListener(
-      'walletTagsChanged',
-      handleTagsChanged as EventListener
-    );
-
-    return () => {
-      window.removeEventListener(
-        'walletTagsChanged',
-        handleTagsChanged as EventListener
-      );
-    };
-  }, [walletAddress]);
-
-  // Refresh bot tag status every 5 seconds as fallback
-  useEffect(() => {
-    const interval = setInterval(() => {
-      checkBotTag();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [walletAddress]);
+  const { tags, isLoading } = useWalletTags(walletAddress);
+  const isBot = tags.some((t) => t.tag.toLowerCase() === 'bot');
 
   return (
     <>

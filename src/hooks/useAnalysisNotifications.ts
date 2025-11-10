@@ -24,107 +24,174 @@ interface WebSocketMessage {
   data: AnalysisCompleteData | AnalysisStartData;
 }
 
+// Singleton WebSocket connection to prevent duplicate notifications
+let globalWs: WebSocket | null = null;
+let connectionCount = 0;
+let messageCallbacks: Set<
+  (data: AnalysisCompleteData | AnalysisStartData, event: string) => void
+> = new Set();
+let lastProcessedJobId: string | null = null;
+let lastProcessedTime = 0;
+
+// Global message handler - only processes each message once
+const globalMessageHandler = (event: MessageEvent) => {
+  try {
+    const message: WebSocketMessage = JSON.parse(event.data);
+    if (shouldLog()) {
+      console.log('[WebSocket] Received message:', message);
+    }
+
+    if (message.event === 'analysis_complete') {
+      const data = message.data as AnalysisCompleteData;
+
+      // Deduplicate: Skip if we just processed this job_id within last 2 seconds
+      const now = Date.now();
+      if (
+        data.job_id === lastProcessedJobId &&
+        now - lastProcessedTime < 2000
+      ) {
+        if (shouldLog()) {
+          console.log(
+            '[WebSocket] Skipping duplicate notification for job:',
+            data.job_id
+          );
+        }
+        return;
+      }
+      lastProcessedJobId = data.job_id;
+      lastProcessedTime = now;
+
+      // Show toast notification (only once, with ID to prevent duplicates)
+      toast.success(`Analysis complete: ${data.token_name}`, {
+        description: `Found ${data.wallets_found} early bidder wallets`,
+        duration: 5000,
+        id: `analysis-${data.job_id}` // Sonner will deduplicate based on this ID
+      });
+
+      // Show desktop notification ONLY if tab is not focused
+      if (
+        'Notification' in window &&
+        Notification.permission === 'granted' &&
+        document.hidden // Only show desktop notification if tab is hidden
+      ) {
+        const notification = new Notification('Analysis Complete ✓', {
+          body: `${data.token_name} (${data.acronym})\n${data.wallets_found} wallets found`,
+          icon: '/favicon.ico',
+          tag: 'analysis-complete',
+          requireInteraction: false,
+          silent: true
+        });
+
+        // Auto-close after 3 seconds
+        setTimeout(() => notification.close(), 3000);
+
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      }
+
+      // Notify all registered callbacks
+      messageCallbacks.forEach((cb) => cb(data, 'analysis_complete'));
+    } else if (message.event === 'analysis_start') {
+      const data = message.data as AnalysisStartData;
+
+      // Show toast with unique ID to prevent duplicates
+      toast.info(`Analysis started: ${data.token_name}`, {
+        description: 'Processing early bidders...',
+        duration: 3000,
+        id: `analysis-start-${data.job_id}` // Deduplicate start notifications too
+      });
+
+      // Notify all registered callbacks
+      messageCallbacks.forEach((cb) => cb(data, 'analysis_start'));
+    }
+  } catch (error) {
+    if (shouldLog()) {
+      console.error('[WebSocket] Error parsing message:', error);
+    }
+  }
+};
+
 export function useAnalysisNotifications(
   onComplete?: (data: AnalysisCompleteData) => void
 ) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const callbackRef = useRef<
+    | ((data: AnalysisCompleteData | AnalysisStartData, event: string) => void)
+    | null
+  >(null);
 
   useEffect(() => {
     let isSubscribed = true;
+    connectionCount++;
 
     // Initialize debug mode from backend
     initDebugMode();
 
+    // Create callback for this component instance
+    const callback = (
+      data: AnalysisCompleteData | AnalysisStartData,
+      event: string
+    ) => {
+      if (event === 'analysis_complete' && onComplete) {
+        onComplete(data as AnalysisCompleteData);
+      }
+    };
+
+    callbackRef.current = callback;
+    messageCallbacks.add(callback);
+
     const connect = () => {
       if (!isSubscribed) return;
 
-      // Connect to FastAPI WebSocket server
-      const ws = new WebSocket('ws://localhost:5002/ws');
-      wsRef.current = ws;
-
-      ws.onopen = () => {
+      // Reuse existing global connection if available
+      if (globalWs && globalWs.readyState === WebSocket.OPEN) {
+        wsRef.current = globalWs;
         if (shouldLog()) {
-          console.log('[WebSocket] Connected to FastAPI WebSocket server');
+          console.log('[WebSocket] Reusing existing connection');
         }
-      };
+        return;
+      }
 
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
+      // Create new connection only if no global connection exists
+      if (!globalWs || globalWs.readyState === WebSocket.CLOSED) {
+        const ws = new WebSocket('ws://localhost:5002/ws');
+        globalWs = ws;
+        wsRef.current = ws;
+
+        ws.onopen = () => {
           if (shouldLog()) {
-            console.log('[WebSocket] Received message:', message);
+            console.log('[WebSocket] Connected to FastAPI WebSocket server');
           }
+        };
 
-          if (message.event === 'analysis_complete') {
-            const data = message.data as AnalysisCompleteData;
+        // Use the global message handler (only attached once)
+        ws.onmessage = globalMessageHandler;
 
-            // Show toast notification
-            toast.success(`Analysis complete: ${data.token_name}`, {
-              description: `Found ${data.wallets_found} early bidder wallets`,
-              duration: 5000
-            });
+        ws.onerror = (error) => {
+          if (shouldLog()) {
+            console.error('[WebSocket] Connection error:', error);
+          }
+        };
 
-            // Show desktop notification if permission granted
-            if (
-              'Notification' in window &&
-              Notification.permission === 'granted'
-            ) {
-              const notification = new Notification('Analysis Complete ✓', {
-                body: `${data.token_name} (${data.acronym})\n${data.wallets_found} wallets found`,
-                icon: '/favicon.ico',
-                tag: 'analysis-complete',
-                requireInteraction: false,
-                silent: true
-              });
+        ws.onclose = () => {
+          if (shouldLog()) {
+            console.log('[WebSocket] Disconnected from server');
+          }
+          globalWs = null;
+          wsRef.current = null;
 
-              // Auto-close after 3 seconds
-              setTimeout(() => notification.close(), 3000);
-
-              notification.onclick = () => {
-                window.focus();
-                notification.close();
-              };
+          // Attempt to reconnect after 3 seconds
+          if (connectionCount > 0) {
+            if (shouldLog()) {
+              console.log('[WebSocket] Reconnecting in 3 seconds...');
             }
-
-            // Call the callback if provided
-            if (onComplete) {
-              onComplete(data);
-            }
-          } else if (message.event === 'analysis_start') {
-            const data = message.data as AnalysisStartData;
-            toast.info(`Analysis started: ${data.token_name}`, {
-              description: 'Processing early bidders...',
-              duration: 3000
-            });
+            reconnectTimeoutRef.current = setTimeout(connect, 3000);
           }
-        } catch (error) {
-          if (shouldLog()) {
-            console.error('[WebSocket] Error parsing message:', error);
-          }
-        }
-      };
-
-      ws.onerror = (error) => {
-        if (shouldLog()) {
-          console.error('[WebSocket] Connection error:', error);
-        }
-      };
-
-      ws.onclose = () => {
-        if (shouldLog()) {
-          console.log('[WebSocket] Disconnected from server');
-        }
-        wsRef.current = null;
-
-        // Attempt to reconnect after 3 seconds
-        if (isSubscribed) {
-          if (shouldLog()) {
-            console.log('[WebSocket] Reconnecting in 3 seconds...');
-          }
-          reconnectTimeoutRef.current = setTimeout(connect, 3000);
-        }
-      };
+        };
+      }
     };
 
     // Initial connection
@@ -133,6 +200,8 @@ export function useAnalysisNotifications(
     // Cleanup on unmount
     return () => {
       isSubscribed = false;
+      connectionCount--;
+
       if (shouldLog()) {
         console.log('[WebSocket] Cleaning up connection');
       }
@@ -141,10 +210,18 @@ export function useAnalysisNotifications(
         clearTimeout(reconnectTimeoutRef.current);
       }
 
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
+      // Remove callback from the set
+      if (callbackRef.current) {
+        messageCallbacks.delete(callbackRef.current);
       }
+
+      // Only close global connection if no more components are using it
+      if (connectionCount === 0 && globalWs) {
+        globalWs.close();
+        globalWs = null;
+      }
+
+      wsRef.current = null;
     };
   }, [onComplete]);
 

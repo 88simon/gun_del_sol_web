@@ -165,6 +165,7 @@ export function TokenDetailsModal({
                   <TableRow>
                     <TableHead className='w-[60px]'>Rank</TableHead>
                     <TableHead>Wallet Address</TableHead>
+                    <TableHead className='text-right'>Balance (USD)</TableHead>
                     <TableHead className='text-right'>Actions</TableHead>
                     <TableHead>First Buy Time</TableHead>
                     <TableHead className='text-right'>Amount (USD)</TableHead>
@@ -176,7 +177,7 @@ export function TokenDetailsModal({
                   {token.wallets.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={8}
                         className='text-muted-foreground py-12 text-center'
                       >
                         No wallets found
@@ -194,6 +195,12 @@ export function TokenDetailsModal({
                           >
                             {wallet.wallet_address}
                           </WalletAddressWithBotIndicator>
+                        </TableCell>
+                        <TableCell className='text-right font-mono text-sm'>
+                          {wallet.wallet_balance_usd !== null &&
+                          wallet.wallet_balance_usd !== undefined
+                            ? `$${Math.round(wallet.wallet_balance_usd)}`
+                            : 'N/A'}
                         </TableCell>
                         <TableCell className='text-right'>
                           <div className='flex justify-end gap-2'>
@@ -289,6 +296,9 @@ export function TokenDetailsModal({
                             <TableHead className='w-[60px]'>Rank</TableHead>
                             <TableHead>Wallet Address</TableHead>
                             <TableHead className='text-right'>
+                              Balance (USD)
+                            </TableHead>
+                            <TableHead className='text-right'>
                               Actions
                             </TableHead>
                             <TableHead>First Buy Time</TableHead>
@@ -305,7 +315,7 @@ export function TokenDetailsModal({
                           {run.wallets.length === 0 ? (
                             <TableRow>
                               <TableCell
-                                colSpan={7}
+                                colSpan={8}
                                 className='text-muted-foreground py-8 text-center text-sm'
                               >
                                 No wallets in this run
@@ -323,6 +333,12 @@ export function TokenDetailsModal({
                                   >
                                     {wallet.wallet_address}
                                   </WalletAddressWithBotIndicator>
+                                </TableCell>
+                                <TableCell className='text-right font-mono text-xs'>
+                                  {wallet.wallet_balance_usd !== null &&
+                                  wallet.wallet_balance_usd !== undefined
+                                    ? `$${Math.round(wallet.wallet_balance_usd)}`
+                                    : 'N/A'}
                                 </TableCell>
                                 <TableCell className='text-right'>
                                   <div className='flex justify-end gap-1'>

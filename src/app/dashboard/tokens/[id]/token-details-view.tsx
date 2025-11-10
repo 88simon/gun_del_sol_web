@@ -129,6 +129,7 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
               <TableRow>
                 <TableHead className='w-[60px]'>Rank</TableHead>
                 <TableHead>Wallet Address</TableHead>
+                <TableHead className='text-right'>Balance (USD)</TableHead>
                 <TableHead>First Buy Time</TableHead>
                 <TableHead className='text-right'>Amount (USD)</TableHead>
                 <TableHead className='text-center'>Txns</TableHead>
@@ -140,7 +141,7 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
               {token.wallets.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className='text-muted-foreground py-12 text-center'
                   >
                     No wallets found
@@ -162,6 +163,12 @@ export function TokenDetailsView({ token }: TokenDetailsViewProps) {
                           compact
                         />
                       </div>
+                    </TableCell>
+                    <TableCell className='text-right font-mono text-sm'>
+                      {wallet.wallet_balance_usd !== null &&
+                      wallet.wallet_balance_usd !== undefined
+                        ? `$${Math.round(wallet.wallet_balance_usd)}`
+                        : 'N/A'}
                     </TableCell>
                     <TableCell className='text-sm'>
                       {formatTimestamp(wallet.first_buy_timestamp)}
