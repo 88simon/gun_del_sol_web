@@ -263,137 +263,152 @@ export function TokenDetailsModal({
               </div>
             ) : (
               <div className='mt-4 space-y-6'>
-                {history.runs.map((run, runIndex) => (
-                  <div key={run.id} className='rounded-lg border p-4'>
-                    <div className='mb-3 flex items-center justify-between'>
-                      <div>
-                        <h4 className='text-sm font-semibold'>
-                          Analysis #{history.runs.length - runIndex}
-                          {runIndex === 0 && (
-                            <Badge variant='secondary' className='ml-2'>
-                              Latest
-                            </Badge>
-                          )}
-                        </h4>
-                        <p className='text-muted-foreground text-xs'>
-                          {formatTimestamp(run.analysis_timestamp)}
-                        </p>
-                      </div>
-                      <div className='text-right text-sm'>
-                        <div className='font-semibold'>
-                          {run.wallets_found} wallets
-                        </div>
-                        <div className='text-muted-foreground text-xs'>
-                          {run.credits_used} credits
-                        </div>
-                      </div>
-                    </div>
+                {history.runs.map((run, runIndex) => {
+                  // Calculate cumulative wallet offset based on previous runs
+                  const walletOffset = history.runs
+                    .slice(runIndex + 1)
+                    .reduce((sum, prevRun) => sum + prevRun.wallets_found, 0);
+                  const startWallet = walletOffset + 1;
+                  const endWallet = walletOffset + run.wallets_found;
+                  const analysisNumber = history.runs.length - runIndex;
 
-                    <div className='rounded-md border'>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className='w-[60px]'>Rank</TableHead>
-                            <TableHead>Wallet Address</TableHead>
-                            <TableHead className='text-right'>
-                              Balance (USD)
-                            </TableHead>
-                            <TableHead className='text-right'>
-                              Actions
-                            </TableHead>
-                            <TableHead>First Buy Time</TableHead>
-                            <TableHead className='text-right'>
-                              Amount (USD)
-                            </TableHead>
-                            <TableHead className='text-center'>Txns</TableHead>
-                            <TableHead className='text-right'>
-                              Avg Buy
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {run.wallets.length === 0 ? (
+                  return (
+                    <div key={run.id} className='rounded-lg border p-4'>
+                      <div className='mb-3 flex items-center justify-between'>
+                        <div>
+                          <h4 className='text-sm font-semibold'>
+                            Analysis #{analysisNumber} (Wallets {startWallet}-
+                            {endWallet})
+                            {runIndex === 0 && (
+                              <Badge variant='secondary' className='ml-2'>
+                                Latest
+                              </Badge>
+                            )}
+                          </h4>
+                          <p className='text-muted-foreground text-xs'>
+                            {formatTimestamp(run.analysis_timestamp)}
+                          </p>
+                        </div>
+                        <div className='text-right text-sm'>
+                          <div className='font-semibold'>
+                            {run.wallets_found} wallets
+                          </div>
+                          <div className='text-muted-foreground text-xs'>
+                            {run.credits_used} credits
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className='rounded-md border'>
+                        <Table>
+                          <TableHeader>
                             <TableRow>
-                              <TableCell
-                                colSpan={8}
-                                className='text-muted-foreground py-8 text-center text-sm'
-                              >
-                                No wallets in this run
-                              </TableCell>
+                              <TableHead className='w-[60px]'>Rank</TableHead>
+                              <TableHead>Wallet Address</TableHead>
+                              <TableHead className='text-right'>
+                                Balance (USD)
+                              </TableHead>
+                              <TableHead className='text-right'>
+                                Actions
+                              </TableHead>
+                              <TableHead>First Buy Time</TableHead>
+                              <TableHead className='text-right'>
+                                Amount (USD)
+                              </TableHead>
+                              <TableHead className='text-center'>
+                                Txns
+                              </TableHead>
+                              <TableHead className='text-right'>
+                                Avg Buy
+                              </TableHead>
                             </TableRow>
-                          ) : (
-                            run.wallets.map((wallet, index) => (
-                              <TableRow key={wallet.id}>
-                                <TableCell className='text-primary text-sm font-semibold'>
-                                  #{index + 1}
-                                </TableCell>
-                                <TableCell className='font-mono text-xs'>
-                                  <WalletAddressWithBotIndicator
-                                    walletAddress={wallet.wallet_address}
-                                  >
-                                    {wallet.wallet_address}
-                                  </WalletAddressWithBotIndicator>
-                                </TableCell>
-                                <TableCell className='text-right font-mono text-xs'>
-                                  {wallet.wallet_balance_usd !== null &&
-                                  wallet.wallet_balance_usd !== undefined
-                                    ? `$${Math.round(wallet.wallet_balance_usd)}`
-                                    : 'N/A'}
-                                </TableCell>
-                                <TableCell className='text-right'>
-                                  <div className='flex justify-end gap-1'>
-                                    <WalletTags
-                                      walletAddress={wallet.wallet_address}
-                                    />
-                                    <AdditionalTagsPopover
-                                      walletId={wallet.id}
-                                      walletAddress={wallet.wallet_address}
-                                      compact
-                                    />
-                                    <Button
-                                      variant='ghost'
-                                      size='sm'
-                                      onClick={() =>
-                                        copyAddress(wallet.wallet_address)
-                                      }
-                                    >
-                                      <Copy className='h-3 w-3' />
-                                    </Button>
-                                    <a
-                                      href={`https://solscan.io/account/${wallet.wallet_address}`}
-                                      target='_blank'
-                                      rel='noopener noreferrer'
-                                    >
-                                      <Button variant='outline' size='sm'>
-                                        <ExternalLink className='h-3 w-3' />
-                                      </Button>
-                                    </a>
-                                  </div>
-                                </TableCell>
-                                <TableCell className='text-xs'>
-                                  {formatTimestamp(wallet.first_buy_timestamp)}
-                                </TableCell>
-                                <TableCell className='text-right text-sm'>
-                                  {wallet.total_usd
-                                    ? `$${Math.round(wallet.total_usd)}`
-                                    : 'N/A'}
-                                </TableCell>
-                                <TableCell className='text-center text-sm'>
-                                  {wallet.transaction_count || 1}
-                                </TableCell>
-                                <TableCell className='text-right text-sm'>
-                                  {wallet.average_buy_usd
-                                    ? `$${Math.round(wallet.average_buy_usd)}`
-                                    : 'N/A'}
+                          </TableHeader>
+                          <TableBody>
+                            {run.wallets.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={8}
+                                  className='text-muted-foreground py-8 text-center text-sm'
+                                >
+                                  No wallets in this run
                                 </TableCell>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
+                            ) : (
+                              run.wallets.map((wallet, index) => (
+                                <TableRow key={wallet.id}>
+                                  <TableCell className='text-primary text-sm font-semibold'>
+                                    #{walletOffset + index + 1}
+                                  </TableCell>
+                                  <TableCell className='font-mono text-xs'>
+                                    <WalletAddressWithBotIndicator
+                                      walletAddress={wallet.wallet_address}
+                                    >
+                                      {wallet.wallet_address}
+                                    </WalletAddressWithBotIndicator>
+                                  </TableCell>
+                                  <TableCell className='text-right font-mono text-xs'>
+                                    {wallet.wallet_balance_usd !== null &&
+                                    wallet.wallet_balance_usd !== undefined
+                                      ? `$${Math.round(wallet.wallet_balance_usd)}`
+                                      : 'N/A'}
+                                  </TableCell>
+                                  <TableCell className='text-right'>
+                                    <div className='flex justify-end gap-1'>
+                                      <WalletTags
+                                        walletAddress={wallet.wallet_address}
+                                      />
+                                      <AdditionalTagsPopover
+                                        walletId={wallet.id}
+                                        walletAddress={wallet.wallet_address}
+                                        compact
+                                      />
+                                      <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        onClick={() =>
+                                          copyAddress(wallet.wallet_address)
+                                        }
+                                      >
+                                        <Copy className='h-3 w-3' />
+                                      </Button>
+                                      <a
+                                        href={`https://solscan.io/account/${wallet.wallet_address}`}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                      >
+                                        <Button variant='outline' size='sm'>
+                                          <ExternalLink className='h-3 w-3' />
+                                        </Button>
+                                      </a>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className='text-xs'>
+                                    {formatTimestamp(
+                                      wallet.first_buy_timestamp
+                                    )}
+                                  </TableCell>
+                                  <TableCell className='text-right text-sm'>
+                                    {wallet.total_usd
+                                      ? `$${Math.round(wallet.total_usd)}`
+                                      : 'N/A'}
+                                  </TableCell>
+                                  <TableCell className='text-center text-sm'>
+                                    {wallet.transaction_count || 1}
+                                  </TableCell>
+                                  <TableCell className='text-right text-sm'>
+                                    {wallet.average_buy_usd
+                                      ? `$${Math.round(wallet.average_buy_usd)}`
+                                      : 'N/A'}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
