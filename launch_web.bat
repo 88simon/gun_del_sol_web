@@ -19,12 +19,34 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+REM Check if pnpm is installed (this repo uses pnpm)
+where pnpm >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo pnpm is not installed. Installing via npm...
+    echo.
+    call npm install -g pnpm
+    if %ERRORLEVEL% NEQ 0 (
+        echo.
+        echo WARNING: Failed to install pnpm globally
+        echo Falling back to npm...
+        set USE_NPM=1
+    )
+) else (
+    set USE_NPM=0
+)
+
 REM Check if node_modules exists
 if not exist "%SCRIPT_DIR%node_modules" (
     echo Installing dependencies...
     echo.
     cd /d "%SCRIPT_DIR%"
-    call npm install
+    if "%USE_NPM%"=="1" (
+        echo Using npm install...
+        call npm install
+    ) else (
+        echo Using pnpm install ^(faster^)...
+        call pnpm install
+    )
     if %ERRORLEVEL% NEQ 0 (
         echo.
         echo ERROR: Failed to install dependencies
@@ -38,12 +60,17 @@ REM Start the Next.js development server
 echo.
 echo Starting Gun Del Sol Frontend...
 echo.
-echo Backend API: http://localhost:5001
-echo Frontend:    http://localhost:3000
+echo FastAPI ^(Primary^): http://localhost:5003
+echo Flask API ^(Legacy^): http://localhost:5001
+echo Frontend:          http://localhost:3000
 echo.
 cd /d "%SCRIPT_DIR%"
 title Gun Del Sol - Frontend
-call npm run dev
+if "%USE_NPM%"=="1" (
+    call npm run dev
+) else (
+    call pnpm dev
+)
 title Gun Del Sol - Frontend
 
 REM If we get here, the server was stopped
