@@ -32,6 +32,8 @@ import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { navItems } from '@/constants/data';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useUser } from '@clerk/nextjs';
+import { SettingsModal } from '@/components/settings-modal';
+import { useApiSettings } from '@/contexts/ApiSettingsContext';
 import {
   IconBell,
   IconChevronRight,
@@ -40,7 +42,8 @@ import {
   IconLogout,
   IconPhotoUp,
   IconUserCircle,
-  IconTags
+  IconTags,
+  IconSettings
 } from '@tabler/icons-react';
 import { SignOutButton } from '@clerk/nextjs';
 import Link from 'next/link';
@@ -57,6 +60,8 @@ export default function AppSidebar({ onCodexToggle }: AppSidebarProps) {
   const { isOpen } = useMediaQuery();
   const { user } = useUser();
   const router = useRouter();
+  const [showSettings, setShowSettings] = React.useState(false);
+  const { apiSettings, setApiSettings, defaultApiSettings } = useApiSettings();
 
   React.useEffect(() => {
     // Side effects based on sidebar state changes
@@ -144,13 +149,24 @@ export default function AppSidebar({ onCodexToggle }: AppSidebarProps) {
           <SidebarGroupLabel>Tools</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={onCodexToggle}
-                tooltip='Codex'
-              >
+              <SidebarMenuButton onClick={onCodexToggle} tooltip='Codex'>
                 <IconTags />
                 <span>Codex</span>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SettingsModal
+                open={showSettings}
+                onOpenChange={setShowSettings}
+                apiSettings={apiSettings}
+                setApiSettings={setApiSettings}
+                defaultApiSettings={defaultApiSettings}
+              >
+                <SidebarMenuButton tooltip='API Settings'>
+                  <IconSettings />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SettingsModal>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>

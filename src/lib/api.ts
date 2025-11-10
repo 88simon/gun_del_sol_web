@@ -3,7 +3,7 @@
  * Fetches data from the Flask backend running on localhost:5001
  */
 
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = 'http://localhost:5003'; // FastAPI (was 5001 Flask)
 
 export interface Token {
   id: number;
@@ -17,6 +17,7 @@ export interface Token {
   credits_used?: number;
   last_analysis_credits?: number;
   wallet_addresses?: string[];
+  deleted_at?: string | null;
 }
 
 export interface Wallet {
@@ -353,6 +354,45 @@ export async function analyzeToken(
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || 'Failed to analyze token');
+  }
+
+  return res.json();
+}
+
+/**
+ * Refresh wallet balances for multiple wallets
+ */
+export interface RefreshBalancesResult {
+  wallet_address: string;
+  balance_usd: number | null;
+  success: boolean;
+}
+
+export interface RefreshBalancesResponse {
+  message: string;
+  results: RefreshBalancesResult[];
+  total_wallets: number;
+  successful: number;
+  api_credits_used: number;
+}
+
+export async function refreshWalletBalances(
+  walletAddresses: string[]
+): Promise<RefreshBalancesResponse> {
+  const res = await fetch(`${API_BASE_URL}/wallets/refresh-balances`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      wallet_addresses: walletAddresses
+    }),
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to refresh balances');
   }
 
   return res.json();

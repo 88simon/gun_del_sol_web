@@ -25,7 +25,7 @@ export const navItems: NavItem[] = [
     title: 'Trash',
     url: '/dashboard/trash',
     icon: 'trash',
-    shortcut: [],
+    shortcut: ['d', 'd'],
     isActive: false,
     items: []
   }

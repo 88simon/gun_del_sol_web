@@ -316,6 +316,11 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 50
+      }
+    },
     state: {
       globalFilter
     },
@@ -324,7 +329,7 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
       const search = filterValue.toLowerCase();
       // Search in token address, token name, token symbol, and wallet addresses
       const tokenData = row.original;
-      return (
+      return !!(
         tokenData.token_address?.toLowerCase().includes(search) ||
         tokenData.token_name?.toLowerCase().includes(search) ||
         tokenData.token_symbol?.toLowerCase().includes(search) ||

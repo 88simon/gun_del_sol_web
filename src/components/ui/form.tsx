@@ -25,7 +25,7 @@ const Form = ({
 }: {
   children: React.ReactNode;
   onSubmit: (data: any) => void;
-  form: UseFormReturn<any, any, undefined>;
+  form: UseFormReturn<any, any, any>;
   className?: string;
 }) => {
   return (

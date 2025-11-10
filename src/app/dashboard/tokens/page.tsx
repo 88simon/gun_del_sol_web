@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   getTokens,
   getMultiTokenWallets,
   TokensResponse,
-  MultiTokenWalletsResponse
+  MultiTokenWalletsResponse,
+  refreshWalletBalances
 } from '@/lib/api';
 import { shouldLog } from '@/lib/debug';
 import { TokensTable } from './tokens-table';
@@ -14,10 +16,9 @@ import {
   Copy,
   CalendarIcon,
   X,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw
+  ChevronDown,
+  ChevronUp,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WalletTags } from '@/components/wallet-tags';
@@ -32,10 +33,9 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { WalletTagsProvider } from '@/contexts/WalletTagsContext';
 import { useAnalysisNotifications } from '@/hooks/useAnalysisNotifications';
+import { useApiSettings } from '@/contexts/ApiSettingsContext';
 
 export default function TokensPage() {
   const [data, setData] = useState<TokensResponse | null>(null);
@@ -52,70 +52,16 @@ export default function TokensPage() {
   }>({ from: undefined, to: undefined });
   const hasInitializedPolling = useRef(false);
 
-  // API Request Settings State
-  const defaultApiSettings = {
-    transactionLimit: 500,
-    minUsdFilter: 50,
-    walletCount: 10,
-    apiRateDelay: 100,
-    maxCreditsPerAnalysis: 1000,
-    maxRetries: 3
-  };
-  const [apiSettings, setApiSettings] = useState(defaultApiSettings);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-  const isInitialLoadRef = useRef(true);
+  // Multi-token wallet panel state
+  const [isWalletPanelExpanded, setIsWalletPanelExpanded] = useState(false);
+  const [walletPage, setWalletPage] = useState(0);
+  const [selectedWallets, setSelectedWallets] = useState<Set<string>>(
+    new Set()
+  );
+  const walletsPerPage = 5;
 
-  // Load API settings from backend on mount (silently, no UI impact)
-  useEffect(() => {
-    fetch('http://localhost:5001/api/settings', { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((settings) => {
-        // Batch state updates to avoid extra render
-        React.startTransition(() => {
-          setApiSettings(settings);
-          setSettingsLoaded(true);
-        });
-      })
-      .catch((err) => {
-        console.error('Failed to load API settings:', err);
-        setSettingsLoaded(true);
-      });
-  }, []);
-
-  // Update backend whenever settings change (but not on initial load)
-  useEffect(() => {
-    if (!settingsLoaded) return; // Skip if not loaded yet
-
-    // Skip the first run (when settings are initially loaded from backend)
-    if (isInitialLoadRef.current) {
-      isInitialLoadRef.current = false;
-      return;
-    }
-
-    // Debounce to avoid too many requests (1 second wait after user stops adjusting)
-    const timer = setTimeout(() => {
-      fetch('http://localhost:5001/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiSettings)
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log('[Settings] Updated:', data.settings);
-          // Show toast notification when settings are saved
-          toast.success('Settings saved', {
-            description: 'Will be used for next analysis',
-            duration: 2000
-          });
-        })
-        .catch((err) => {
-          console.error('[Settings] Failed to update:', err);
-          toast.error('Failed to save settings');
-        });
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [apiSettings, settingsLoaded]);
+  // Use API settings from context
+  const { apiSettings } = useApiSettings();
 
   const fetchData = () => {
     setLoading(true);
@@ -326,6 +272,85 @@ export default function TokensPage() {
     return Array.from(addresses);
   }, [multiWallets]);
 
+  // Wallet panel helpers
+  const handleWalletRowClick = (
+    walletAddress: string,
+    event: React.MouseEvent
+  ) => {
+    // Don't select if clicking on a link, button, or interactive element
+    const target = event.target as HTMLElement;
+    if (
+      target.tagName === 'A' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('a') ||
+      target.closest('button')
+    ) {
+      return;
+    }
+
+    setSelectedWallets((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(walletAddress)) {
+        newSet.delete(walletAddress);
+      } else {
+        newSet.add(walletAddress);
+      }
+      return newSet;
+    });
+  };
+
+  const handleRefreshBalances = async (walletAddressesOverride?: string[]) => {
+    const walletAddresses =
+      walletAddressesOverride || Array.from(selectedWallets);
+
+    if (walletAddresses.length === 0) {
+      toast.error('No wallets selected');
+      return;
+    }
+
+    toast.info(
+      `Refreshing balances for ${walletAddresses.length} wallet(s)...`
+    );
+
+    try {
+      const response = await refreshWalletBalances(walletAddresses);
+
+      // Refresh the multi-token wallets data to show updated balances
+      const walletsData = await getMultiTokenWallets(2);
+      setMultiWallets(walletsData);
+
+      toast.success(
+        `Refreshed ${response.successful} of ${response.total_wallets} wallet(s) (${response.api_credits_used} API credits used)`
+      );
+
+      // Clear selection after refresh only if using selected wallets (not single wallet)
+      if (!walletAddressesOverride) {
+        setSelectedWallets(new Set());
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to refresh balances');
+      console.error('[Balance Refresh] Error:', error);
+    }
+  };
+
+  // Pagination logic for multi-token wallets
+  const walletsToDisplay = useMemo(() => {
+    if (!multiWallets?.wallets) return [];
+
+    if (isWalletPanelExpanded) {
+      return multiWallets.wallets;
+    }
+
+    const start = walletPage * walletsPerPage;
+    const end = start + walletsPerPage;
+    return multiWallets.wallets.slice(start, end);
+  }, [multiWallets, isWalletPanelExpanded, walletPage]);
+
+  const totalWalletPages = useMemo(() => {
+    if (!multiWallets?.wallets) return 0;
+    return Math.ceil(multiWallets.wallets.length / walletsPerPage);
+  }, [multiWallets]);
+
   if (loading) {
     return (
       <WalletTagsProvider walletAddresses={allWalletAddresses}>
@@ -437,9 +462,9 @@ export default function TokensPage() {
                 toast.success(
                   'Test notification created! Check if it appears.'
                 );
-              } catch (error) {
+              } catch (error: any) {
                 console.error('[Test] Failed to create notification:', error);
-                toast.error(`Failed: ${error.message}`);
+                toast.error(`Failed: ${error.message || 'Unknown error'}`);
               }
             }}
           >
@@ -514,588 +539,6 @@ export default function TokensPage() {
             </div>
           </div>
           <div className='bg-card rounded-lg border p-6'>
-            <div className='mb-3'>
-              <div className='text-muted-foreground text-sm font-medium'>
-                API Request Settings
-              </div>
-              <details className='mt-2'>
-                <summary className='text-muted-foreground hover:text-foreground cursor-pointer text-[10px]'>
-                  View Current Settings in JSON Format
-                </summary>
-                <pre className='text-muted-foreground bg-muted mt-2 rounded p-2 text-[9px]'>
-                  {JSON.stringify(apiSettings, null, 2)}
-                </pre>
-              </details>
-            </div>
-            <div className='space-y-2'>
-              {/* Transaction Limit */}
-              <div className='flex items-center justify-between'>
-                <Label className='text-muted-foreground text-[10px]'>
-                  Transactions
-                </Label>
-                <div className='flex items-center gap-1'>
-                  <div className='flex items-center gap-0.5'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          transactionLimit: Math.max(
-                            100,
-                            apiSettings.transactionLimit - 100
-                          )
-                        })
-                      }
-                    >
-                      <ChevronLeft className='h-3 w-3' />
-                    </Button>
-                    <Input
-                      type='number'
-                      value={apiSettings.transactionLimit}
-                      onChange={(e) =>
-                        setApiSettings({
-                          ...apiSettings,
-                          transactionLimit: parseInt(e.target.value) || 0
-                        })
-                      }
-                      onMouseDown={(e) => {
-                        const startX = e.clientX;
-                        const startValue = apiSettings.transactionLimit;
-                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                          const diff =
-                            Math.floor((moveEvent.clientX - startX) / 5) * 100;
-                          const newValue = Math.max(
-                            100,
-                            Math.min(2000, startValue + diff)
-                          );
-                          setApiSettings({
-                            ...apiSettings,
-                            transactionLimit: newValue
-                          });
-                        };
-                        const handleMouseUp = () => {
-                          document.removeEventListener(
-                            'mousemove',
-                            handleMouseMove
-                          );
-                          document.removeEventListener(
-                            'mouseup',
-                            handleMouseUp
-                          );
-                        };
-                        document.addEventListener('mousemove', handleMouseMove);
-                        document.addEventListener('mouseup', handleMouseUp);
-                      }}
-                      className='h-7 w-16 cursor-ew-resize px-1 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-                    />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          transactionLimit: Math.min(
-                            2000,
-                            apiSettings.transactionLimit + 100
-                          )
-                        })
-                      }
-                    >
-                      <ChevronRight className='h-3 w-3' />
-                    </Button>
-                  </div>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-6 w-6 p-0'
-                    onClick={() =>
-                      setApiSettings({
-                        ...apiSettings,
-                        transactionLimit: defaultApiSettings.transactionLimit
-                      })
-                    }
-                    title='Reset to default'
-                  >
-                    <RotateCcw className='h-3 w-3' />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Min USD Filter */}
-              <div className='flex items-center justify-between'>
-                <Label className='text-muted-foreground text-[10px]'>
-                  Min USD ($)
-                </Label>
-                <div className='flex items-center gap-1'>
-                  <div className='flex items-center gap-0.5'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          minUsdFilter: Math.max(
-                            10,
-                            apiSettings.minUsdFilter - 10
-                          )
-                        })
-                      }
-                    >
-                      <ChevronLeft className='h-3 w-3' />
-                    </Button>
-                    <Input
-                      type='number'
-                      value={apiSettings.minUsdFilter}
-                      onChange={(e) =>
-                        setApiSettings({
-                          ...apiSettings,
-                          minUsdFilter: parseInt(e.target.value) || 0
-                        })
-                      }
-                      onMouseDown={(e) => {
-                        const startX = e.clientX;
-                        const startValue = apiSettings.minUsdFilter;
-                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                          const diff =
-                            Math.floor((moveEvent.clientX - startX) / 5) * 10;
-                          const newValue = Math.max(
-                            10,
-                            Math.min(500, startValue + diff)
-                          );
-                          setApiSettings({
-                            ...apiSettings,
-                            minUsdFilter: newValue
-                          });
-                        };
-                        const handleMouseUp = () => {
-                          document.removeEventListener(
-                            'mousemove',
-                            handleMouseMove
-                          );
-                          document.removeEventListener(
-                            'mouseup',
-                            handleMouseUp
-                          );
-                        };
-                        document.addEventListener('mousemove', handleMouseMove);
-                        document.addEventListener('mouseup', handleMouseUp);
-                      }}
-                      className='h-7 w-16 cursor-ew-resize px-1 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-                    />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          minUsdFilter: Math.min(
-                            500,
-                            apiSettings.minUsdFilter + 10
-                          )
-                        })
-                      }
-                    >
-                      <ChevronRight className='h-3 w-3' />
-                    </Button>
-                  </div>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-6 w-6 p-0'
-                    onClick={() =>
-                      setApiSettings({
-                        ...apiSettings,
-                        minUsdFilter: defaultApiSettings.minUsdFilter
-                      })
-                    }
-                    title='Reset to default'
-                  >
-                    <RotateCcw className='h-3 w-3' />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Wallet Count */}
-              <div className='flex items-center justify-between'>
-                <Label className='text-muted-foreground text-[10px]'>
-                  Wallet Count
-                </Label>
-                <div className='flex items-center gap-1'>
-                  <div className='flex items-center gap-0.5'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          walletCount: Math.max(5, apiSettings.walletCount - 5)
-                        })
-                      }
-                    >
-                      <ChevronLeft className='h-3 w-3' />
-                    </Button>
-                    <Input
-                      type='number'
-                      value={apiSettings.walletCount}
-                      onChange={(e) =>
-                        setApiSettings({
-                          ...apiSettings,
-                          walletCount: parseInt(e.target.value) || 0
-                        })
-                      }
-                      onMouseDown={(e) => {
-                        const startX = e.clientX;
-                        const startValue = apiSettings.walletCount;
-                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                          const diff =
-                            Math.floor((moveEvent.clientX - startX) / 10) * 5;
-                          const newValue = Math.max(
-                            5,
-                            Math.min(50, startValue + diff)
-                          );
-                          setApiSettings({
-                            ...apiSettings,
-                            walletCount: newValue
-                          });
-                        };
-                        const handleMouseUp = () => {
-                          document.removeEventListener(
-                            'mousemove',
-                            handleMouseMove
-                          );
-                          document.removeEventListener(
-                            'mouseup',
-                            handleMouseUp
-                          );
-                        };
-                        document.addEventListener('mousemove', handleMouseMove);
-                        document.addEventListener('mouseup', handleMouseUp);
-                      }}
-                      className='h-7 w-16 cursor-ew-resize px-1 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-                    />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          walletCount: Math.min(50, apiSettings.walletCount + 5)
-                        })
-                      }
-                    >
-                      <ChevronRight className='h-3 w-3' />
-                    </Button>
-                  </div>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-6 w-6 p-0'
-                    onClick={() =>
-                      setApiSettings({
-                        ...apiSettings,
-                        walletCount: defaultApiSettings.walletCount
-                      })
-                    }
-                    title='Reset to default'
-                  >
-                    <RotateCcw className='h-3 w-3' />
-                  </Button>
-                </div>
-              </div>
-
-              {/* API Rate Delay */}
-              <div className='flex items-center justify-between'>
-                <Label className='text-muted-foreground text-[10px]'>
-                  Rate Delay (ms)
-                </Label>
-                <div className='flex items-center gap-1'>
-                  <div className='flex items-center gap-0.5'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          apiRateDelay: Math.max(
-                            0,
-                            apiSettings.apiRateDelay - 50
-                          )
-                        })
-                      }
-                    >
-                      <ChevronLeft className='h-3 w-3' />
-                    </Button>
-                    <Input
-                      type='number'
-                      value={apiSettings.apiRateDelay}
-                      onChange={(e) =>
-                        setApiSettings({
-                          ...apiSettings,
-                          apiRateDelay: parseInt(e.target.value) || 0
-                        })
-                      }
-                      onMouseDown={(e) => {
-                        const startX = e.clientX;
-                        const startValue = apiSettings.apiRateDelay;
-                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                          const diff =
-                            Math.floor((moveEvent.clientX - startX) / 2) * 50;
-                          const newValue = Math.max(
-                            0,
-                            Math.min(1000, startValue + diff)
-                          );
-                          setApiSettings({
-                            ...apiSettings,
-                            apiRateDelay: newValue
-                          });
-                        };
-                        const handleMouseUp = () => {
-                          document.removeEventListener(
-                            'mousemove',
-                            handleMouseMove
-                          );
-                          document.removeEventListener(
-                            'mouseup',
-                            handleMouseUp
-                          );
-                        };
-                        document.addEventListener('mousemove', handleMouseMove);
-                        document.addEventListener('mouseup', handleMouseUp);
-                      }}
-                      className='h-7 w-16 cursor-ew-resize px-1 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-                    />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          apiRateDelay: Math.min(
-                            1000,
-                            apiSettings.apiRateDelay + 50
-                          )
-                        })
-                      }
-                    >
-                      <ChevronRight className='h-3 w-3' />
-                    </Button>
-                  </div>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-6 w-6 p-0'
-                    onClick={() =>
-                      setApiSettings({
-                        ...apiSettings,
-                        apiRateDelay: defaultApiSettings.apiRateDelay
-                      })
-                    }
-                    title='Reset to default'
-                  >
-                    <RotateCcw className='h-3 w-3' />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Max Credits Per Analysis */}
-              <div className='flex items-center justify-between'>
-                <Label className='text-muted-foreground text-[10px]'>
-                  Max Credits
-                </Label>
-                <div className='flex items-center gap-1'>
-                  <div className='flex items-center gap-0.5'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          maxCreditsPerAnalysis: Math.max(
-                            100,
-                            apiSettings.maxCreditsPerAnalysis - 100
-                          )
-                        })
-                      }
-                    >
-                      <ChevronLeft className='h-3 w-3' />
-                    </Button>
-                    <Input
-                      type='number'
-                      value={apiSettings.maxCreditsPerAnalysis}
-                      onChange={(e) =>
-                        setApiSettings({
-                          ...apiSettings,
-                          maxCreditsPerAnalysis: parseInt(e.target.value) || 0
-                        })
-                      }
-                      onMouseDown={(e) => {
-                        const startX = e.clientX;
-                        const startValue = apiSettings.maxCreditsPerAnalysis;
-                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                          const diff =
-                            Math.floor((moveEvent.clientX - startX) / 5) * 100;
-                          const newValue = Math.max(
-                            100,
-                            Math.min(5000, startValue + diff)
-                          );
-                          setApiSettings({
-                            ...apiSettings,
-                            maxCreditsPerAnalysis: newValue
-                          });
-                        };
-                        const handleMouseUp = () => {
-                          document.removeEventListener(
-                            'mousemove',
-                            handleMouseMove
-                          );
-                          document.removeEventListener(
-                            'mouseup',
-                            handleMouseUp
-                          );
-                        };
-                        document.addEventListener('mousemove', handleMouseMove);
-                        document.addEventListener('mouseup', handleMouseUp);
-                      }}
-                      className='h-7 w-16 cursor-ew-resize px-1 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-                    />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          maxCreditsPerAnalysis: Math.min(
-                            5000,
-                            apiSettings.maxCreditsPerAnalysis + 100
-                          )
-                        })
-                      }
-                    >
-                      <ChevronRight className='h-3 w-3' />
-                    </Button>
-                  </div>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-6 w-6 p-0'
-                    onClick={() =>
-                      setApiSettings({
-                        ...apiSettings,
-                        maxCreditsPerAnalysis:
-                          defaultApiSettings.maxCreditsPerAnalysis
-                      })
-                    }
-                    title='Reset to default'
-                  >
-                    <RotateCcw className='h-3 w-3' />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Max Retries */}
-              <div className='flex items-center justify-between'>
-                <Label className='text-muted-foreground text-[10px]'>
-                  Max Retries
-                </Label>
-                <div className='flex items-center gap-1'>
-                  <div className='flex items-center gap-0.5'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          maxRetries: Math.max(0, apiSettings.maxRetries - 1)
-                        })
-                      }
-                    >
-                      <ChevronLeft className='h-3 w-3' />
-                    </Button>
-                    <Input
-                      type='number'
-                      value={apiSettings.maxRetries}
-                      onChange={(e) =>
-                        setApiSettings({
-                          ...apiSettings,
-                          maxRetries: parseInt(e.target.value) || 0
-                        })
-                      }
-                      onMouseDown={(e) => {
-                        const startX = e.clientX;
-                        const startValue = apiSettings.maxRetries;
-                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                          const diff = Math.floor(
-                            (moveEvent.clientX - startX) / 20
-                          );
-                          const newValue = Math.max(
-                            0,
-                            Math.min(10, startValue + diff)
-                          );
-                          setApiSettings({
-                            ...apiSettings,
-                            maxRetries: newValue
-                          });
-                        };
-                        const handleMouseUp = () => {
-                          document.removeEventListener(
-                            'mousemove',
-                            handleMouseMove
-                          );
-                          document.removeEventListener(
-                            'mouseup',
-                            handleMouseUp
-                          );
-                        };
-                        document.addEventListener('mousemove', handleMouseMove);
-                        document.addEventListener('mouseup', handleMouseUp);
-                      }}
-                      className='h-7 w-16 cursor-ew-resize px-1 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-                    />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 w-5 p-0'
-                      onClick={() =>
-                        setApiSettings({
-                          ...apiSettings,
-                          maxRetries: Math.min(10, apiSettings.maxRetries + 1)
-                        })
-                      }
-                    >
-                      <ChevronRight className='h-3 w-3' />
-                    </Button>
-                  </div>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-6 w-6 p-0'
-                    onClick={() =>
-                      setApiSettings({
-                        ...apiSettings,
-                        maxRetries: defaultApiSettings.maxRetries
-                      })
-                    }
-                    title='Reset to default'
-                  >
-                    <RotateCcw className='h-3 w-3' />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className='bg-card rounded-lg border p-6'>
             <div className='text-muted-foreground text-sm font-medium'>
               Multi-Token Wallets
             </div>
@@ -1111,15 +554,43 @@ export default function TokensPage() {
               Wallets that appear in multiple analyzed tokens (potential
               whale/insider wallets)
             </p>
-            <div className='overflow-x-auto'>
+
+            {/* Top Selection Controls */}
+            {selectedWallets.size > 0 && (
+              <div className='bg-primary/10 border-primary/20 mb-4 flex items-center justify-center gap-2 rounded-md border p-2'>
+                <span className='text-primary text-sm font-medium'>
+                  {selectedWallets.size} wallet
+                  {selectedWallets.size !== 1 ? 's' : ''} selected
+                </span>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setSelectedWallets(new Set())}
+                  className='h-7 text-xs'
+                >
+                  Deselect All
+                </Button>
+              </div>
+            )}
+
+            <div
+              className={`overflow-x-auto ${isWalletPanelExpanded ? 'max-h-[600px] overflow-y-auto' : ''}`}
+            >
               <table className='w-full'>
-                <thead>
+                <thead
+                  className={
+                    isWalletPanelExpanded ? 'bg-card sticky top-0 z-10' : ''
+                  }
+                >
                   <tr className='border-b'>
                     <th className='pr-4 pb-3 text-left font-medium'>
                       Wallet Address
                     </th>
                     <th className='px-4 pb-3 text-right font-medium'>
                       Balance (USD)
+                    </th>
+                    <th className='px-4 pb-3 text-center font-medium'>
+                      Refresh Balance
                     </th>
                     <th className='px-4 pb-3 text-left font-medium'>Tags</th>
                     <th className='px-4 pb-3 text-center font-medium'>
@@ -1131,76 +602,220 @@ export default function TokensPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {multiWallets.wallets.map((wallet) => (
-                    <tr key={wallet.wallet_address} className='border-b'>
-                      <td className='py-3 pr-4 font-mono'>
-                        <div className='flex items-center gap-2'>
-                          <WalletAddressWithBotIndicator
-                            walletAddress={wallet.wallet_address}
-                          >
-                            <a
-                              href={`https://solscan.io/account/${wallet.wallet_address}`}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='text-primary hover:underline'
+                  {walletsToDisplay.map((wallet) => {
+                    const isSelected = selectedWallets.has(
+                      wallet.wallet_address
+                    );
+                    return (
+                      <motion.tr
+                        key={wallet.wallet_address}
+                        className={`cursor-pointer border-b ${
+                          isSelected ? 'bg-primary/20' : ''
+                        }`}
+                        onClick={(e) =>
+                          handleWalletRowClick(wallet.wallet_address, e)
+                        }
+                        initial={false}
+                        animate={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.2)'
+                            : 'transparent',
+                          boxShadow: isSelected
+                            ? 'inset 0 0 0 2px rgba(var(--primary-rgb, 59 130 246) / 0.3), 0 0 10px rgba(var(--primary-rgb, 59 130 246) / 0.2)'
+                            : 'none'
+                        }}
+                        whileHover={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.25)'
+                            : 'rgba(var(--muted-rgb, 240 240 240) / 0.5)',
+                          boxShadow: isSelected
+                            ? 'inset 0 0 0 2px rgba(var(--primary-rgb, 59 130 246) / 0.4), 0 0 15px rgba(var(--primary-rgb, 59 130 246) / 0.3)'
+                            : '0 1px 3px rgba(0, 0, 0, 0.05)'
+                        }}
+                        whileTap={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.3)'
+                            : 'rgba(var(--muted-rgb, 240 240 240) / 0.7)'
+                        }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 500,
+                          damping: 30,
+                          mass: 0.5
+                        }}
+                      >
+                        <td className='py-3 pr-4'>
+                          <div className='flex items-center gap-2'>
+                            <WalletAddressWithBotIndicator
+                              walletAddress={wallet.wallet_address}
                             >
-                              {wallet.wallet_address}
-                            </a>
-                          </WalletAddressWithBotIndicator>
+                              <a
+                                href={`https://solscan.io/account/${wallet.wallet_address}`}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='text-primary font-sans text-xs hover:underline'
+                              >
+                                {wallet.wallet_address}
+                              </a>
+                            </WalletAddressWithBotIndicator>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='h-6 w-6 p-0'
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  wallet.wallet_address
+                                );
+                                toast.success('Address copied to clipboard');
+                              }}
+                            >
+                              <Copy className='h-3 w-3' />
+                            </Button>
+                          </div>
+                        </td>
+                        <td className='px-4 py-3 text-right font-mono text-sm'>
+                          {wallet.wallet_balance_usd !== null &&
+                          wallet.wallet_balance_usd !== undefined
+                            ? `$${Math.round(wallet.wallet_balance_usd)}`
+                            : 'N/A'}
+                        </td>
+                        <td className='px-4 py-3 text-center'>
                           <Button
                             variant='ghost'
                             size='sm'
                             className='h-6 w-6 p-0'
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                wallet.wallet_address
-                              );
-                              toast.success('Address copied to clipboard');
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRefreshBalances([wallet.wallet_address]);
                             }}
+                            title={`Refresh balance - 1 API credit`}
                           >
-                            <Copy className='h-3 w-3' />
+                            <RefreshCw className='h-3 w-3' />
                           </Button>
-                        </div>
-                      </td>
-                      <td className='px-4 py-3 text-right font-mono text-sm'>
-                        {wallet.wallet_balance_usd !== null &&
-                        wallet.wallet_balance_usd !== undefined
-                          ? `$${Math.round(wallet.wallet_balance_usd)}`
-                          : 'N/A'}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <div className='flex items-center gap-2'>
-                          <WalletTags walletAddress={wallet.wallet_address} />
-                          <AdditionalTagsPopover
-                            walletAddress={wallet.wallet_address}
-                            compact
-                          />
-                        </div>
-                      </td>
-                      <td className='px-4 py-3 text-center'>
-                        <span className='bg-primary text-primary-foreground rounded-full px-3 py-1 text-sm font-bold'>
-                          {wallet.token_count}
-                        </span>
-                      </td>
-                      <td className='py-3 pl-4'>
-                        <div className='flex flex-wrap gap-2'>
-                          {wallet.token_names.map((name, idx) => (
-                            <a
-                              key={idx}
-                              href={`https://solscan.io/token/${wallet.token_addresses[idx]}`}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='bg-muted hover:bg-muted/80 rounded px-2 py-1 text-xs'
-                            >
-                              {name}
-                            </a>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className='px-4 py-3'>
+                          <div className='flex items-center gap-2'>
+                            <WalletTags walletAddress={wallet.wallet_address} />
+                            <AdditionalTagsPopover
+                              walletAddress={wallet.wallet_address}
+                              compact
+                            />
+                          </div>
+                        </td>
+                        <td className='px-4 py-3 text-center'>
+                          <span className='bg-primary text-primary-foreground rounded-full px-3 py-1 text-sm font-bold'>
+                            {wallet.token_count}
+                          </span>
+                        </td>
+                        <td className='py-3 pl-4'>
+                          <div className='flex flex-wrap gap-2'>
+                            {wallet.token_names.map((name, idx) => (
+                              <a
+                                key={idx}
+                                href={`https://solscan.io/token/${wallet.token_addresses[idx]}`}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='bg-muted hover:bg-muted/80 rounded px-2 py-1 text-xs'
+                              >
+                                {name}
+                              </a>
+                            ))}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Collapse/Expand Controls */}
+            <div className='mt-4 border-t pt-4'>
+              {/* Wallet count info */}
+              <div className='mb-3 flex items-center justify-center'>
+                <div className='text-muted-foreground text-sm'>
+                  {isWalletPanelExpanded ? (
+                    <>Showing all {multiWallets.wallets.length} wallets</>
+                  ) : (
+                    <>
+                      Showing {walletsToDisplay.length} of{' '}
+                      {multiWallets.wallets.length} wallets
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Selection Controls */}
+              {selectedWallets.size > 0 && (
+                <div className='bg-primary/10 border-primary/20 mb-3 flex items-center justify-center gap-2 rounded-md border p-2'>
+                  <span className='text-primary text-sm font-medium'>
+                    {selectedWallets.size} wallet
+                    {selectedWallets.size !== 1 ? 's' : ''} selected
+                  </span>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setSelectedWallets(new Set())}
+                    className='h-7 text-xs'
+                  >
+                    Deselect All
+                  </Button>
+                </div>
+              )}
+
+              {/* Centered pagination and expand/collapse */}
+              <div className='flex items-center justify-center gap-3'>
+                {/* Pagination controls (only when collapsed) */}
+                {!isWalletPanelExpanded && totalWalletPages > 1 && (
+                  <div className='flex items-center gap-1'>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setWalletPage((p) => Math.max(0, p - 1))}
+                      disabled={walletPage === 0}
+                      className='h-7 px-2'
+                    >
+                      <ChevronUp className='h-3 w-3' />
+                    </Button>
+                    <span className='text-muted-foreground px-2 text-xs'>
+                      Page {walletPage + 1} / {totalWalletPages}
+                    </span>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() =>
+                        setWalletPage((p) =>
+                          Math.min(totalWalletPages - 1, p + 1)
+                        )
+                      }
+                      disabled={walletPage >= totalWalletPages - 1}
+                      className='h-7 px-2'
+                    >
+                      <ChevronDown className='h-3 w-3' />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Expand/Collapse button */}
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setIsWalletPanelExpanded((prev) => !prev)}
+                  className='h-7'
+                >
+                  {isWalletPanelExpanded ? (
+                    <>
+                      <ChevronUp className='mr-1 h-4 w-4' />
+                      Collapse
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className='mr-1 h-4 w-4' />
+                      Expand All
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         )}
