@@ -7,6 +7,7 @@ import {
   TokensResponse,
   MultiTokenWalletsResponse
 } from '@/lib/api';
+import { shouldLog } from '@/lib/debug';
 import { TokensTable } from './tokens-table';
 import { Button } from '@/components/ui/button';
 import {
@@ -134,7 +135,7 @@ export default function TokensPage() {
 
   // WebSocket notifications for real-time analysis updates
   useAnalysisNotifications((data) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (shouldLog()) {
       console.log('[WebSocket] Analysis completed, refreshing data...', data);
     }
     // Refresh the tokens list when analysis completes

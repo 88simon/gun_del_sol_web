@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { initDebugMode, shouldLog } from '@/lib/debug';
 
 interface AnalysisCompleteData {
   job_id: string;
@@ -32,6 +33,9 @@ export function useAnalysisNotifications(
   useEffect(() => {
     let isSubscribed = true;
 
+    // Initialize debug mode from backend
+    initDebugMode();
+
     const connect = () => {
       if (!isSubscribed) return;
 
@@ -40,7 +44,7 @@ export function useAnalysisNotifications(
       wsRef.current = ws;
 
       ws.onopen = () => {
-        if (process.env.NODE_ENV === 'development') {
+        if (shouldLog()) {
           console.log('[WebSocket] Connected to FastAPI WebSocket server');
         }
       };
@@ -48,7 +52,7 @@ export function useAnalysisNotifications(
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          if (process.env.NODE_ENV === 'development') {
+          if (shouldLog()) {
             console.log('[WebSocket] Received message:', message);
           }
 
@@ -95,27 +99,27 @@ export function useAnalysisNotifications(
             });
           }
         } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
+          if (shouldLog()) {
             console.error('[WebSocket] Error parsing message:', error);
           }
         }
       };
 
       ws.onerror = (error) => {
-        if (process.env.NODE_ENV === 'development') {
+        if (shouldLog()) {
           console.error('[WebSocket] Connection error:', error);
         }
       };
 
       ws.onclose = () => {
-        if (process.env.NODE_ENV === 'development') {
+        if (shouldLog()) {
           console.log('[WebSocket] Disconnected from server');
         }
         wsRef.current = null;
 
         // Attempt to reconnect after 3 seconds
         if (isSubscribed) {
-          if (process.env.NODE_ENV === 'development') {
+          if (shouldLog()) {
             console.log('[WebSocket] Reconnecting in 3 seconds...');
           }
           reconnectTimeoutRef.current = setTimeout(connect, 3000);
@@ -129,7 +133,7 @@ export function useAnalysisNotifications(
     // Cleanup on unmount
     return () => {
       isSubscribed = false;
-      if (process.env.NODE_ENV === 'development') {
+      if (shouldLog()) {
         console.log('[WebSocket] Cleaning up connection');
       }
 
