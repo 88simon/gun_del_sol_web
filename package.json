@@ -13,8 +13,9 @@
     "lint": "next lint",
     "lint:fix": "eslint src --fix && pnpm format",
     "lint:strict": "eslint --max-warnings=0 src",
+    "type-check": "tsc --noEmit --pretty false",
     "format": "prettier --write .",
-    "format:check": "prettier -c -w .",
+    "format:check": "prettier --check .",
     "prepare": "husky"
   },
   "lint-staged": {
