@@ -157,7 +157,7 @@ export function useAnalysisNotifications(
 
       // Create new connection only if no global connection exists
       if (!globalWs || globalWs.readyState === WebSocket.CLOSED) {
-        const ws = new WebSocket('ws://localhost:5002/ws');
+        const ws = new WebSocket('ws://localhost:5003/ws');
         globalWs = ws;
         wsRef.current = ws;
 
