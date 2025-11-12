@@ -90,36 +90,34 @@ jobs:
       # Test the built image
       - name: Test Docker image
         run: |
-          # Load the image for testing (use commit SHA tag)
-          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }} || \
-          docker tag $(docker images -q | head -n 1) test-image:latest
+          # use the locally built image (tagged by metadata action)
+          IMAGE_TAG="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
 
-          # Run container in background
+          # run container in background
           docker run -d --name test-frontend \
             -p 3000:3000 \
             -e NEXT_PUBLIC_SENTRY_DISABLED=true \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }} || \
-          docker run -d --name test-frontend \
-            -p 3000:3000 \
-            -e NEXT_PUBLIC_SENTRY_DISABLED=true \
-            test-image:latest
+            ${IMAGE_TAG}
 
-          # Wait for service to be healthy
-          echo "Waiting for service to start..."
-          for i in {1..30}; do
-            if docker exec test-frontend node -e "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })" 2>/dev/null; then
-              echo "Service is healthy!"
+          # wait for service to be ready
+          echo "waiting for service to start..."
+          sleep 20
+
+          # check if service is responding via curl
+          for i in {1..10}; do
+            if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "service is healthy!"
               break
             fi
-            echo "Attempt $i/30 - waiting..."
-            sleep 2
+            echo "attempt $i/10 - waiting..."
+            sleep 3
           done
 
-          # Check if service is running
+          # show logs and verify health
           docker logs test-frontend
-          docker exec test-frontend node -e "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })" || exit 1
+          curl -f http://localhost:3000/api/health || exit 1
 
-          # Cleanup
+          # cleanup
           docker stop test-frontend
           docker rm test-frontend
 
