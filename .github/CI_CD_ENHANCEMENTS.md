@@ -13,17 +13,20 @@ The CI/CD pipeline has been significantly enhanced with automated dependency man
 **File:** `.github/dependabot.yml`
 
 ### What It Does
+
 - Automatically creates PRs for dependency updates
 - Monitors both npm/pnpm packages and GitHub Actions
 - Runs weekly on Mondays at 9:00 AM UTC
 
 ### Features
+
 - **npm packages:** Smart grouping by category (React, Next.js, UI libraries, styling, dev dependencies)
 - **GitHub Actions:** Keeps workflow actions up to date
 - **Reduced PR noise:** Groups minor/patch updates together
 - **Auto-labels:** Tags PRs with `dependencies`, `frontend`, `javascript`, or `ci`
 
 ### Grouping Strategy
+
 - **React ecosystem:** All React and React-related packages
 - **Next.js:** Next.js and its config packages
 - **UI libraries:** Radix UI components, Tabler icons, Lucide React
@@ -31,6 +34,7 @@ The CI/CD pipeline has been significantly enhanced with automated dependency man
 - **Dev dependencies:** All development tools grouped together
 
 ### Configuration
+
 ```yaml
 npm packages: / (weekly, up to 10 PRs)
 GitHub Actions: / (weekly, up to 3 PRs)
@@ -44,6 +48,7 @@ Review assignments: 88simon
 **File:** `README.md`
 
 ### New Badges Added
+
 - [![CI](https://github.com/88simon/gun_del_sol_web/workflows/CI/badge.svg)]() - Main CI pipeline status
 - [![CodeQL](https://github.com/88simon/gun_del_sol_web/workflows/CodeQL%20Security%20Scan/badge.svg)]() - Security scan status
 - [![Node.js](https://img.shields.io/badge/node-22.x-brightgreen)]() - Node version
@@ -59,12 +64,14 @@ Review assignments: 88simon
 **File:** `.github/workflows/codeql-analysis.yml`
 
 ### What It Does
+
 - Scans JavaScript/TypeScript code for security vulnerabilities
 - Runs on every push/PR to main/develop (when code changes)
 - Weekly scheduled scan (Mondays at 9:00 AM UTC)
 - Uploads results to GitHub Security tab
 
 ### Features
+
 - **Query suite:** `security-and-quality` (comprehensive scanning)
 - **Languages:** JavaScript & TypeScript
 - **Automated:** Runs without manual intervention
@@ -72,6 +79,7 @@ Review assignments: 88simon
 - **Build integration:** Runs autobuild to understand code structure
 
 ### View Results
+
 Navigate to: **Security → Code scanning → CodeQL**
 
 ---
@@ -81,6 +89,7 @@ Navigate to: **Security → Code scanning → CodeQL**
 **File:** `.github/workflows/ci.yml` (enhanced)
 
 ### Existing Jobs (Kept)
+
 1. **Lint & Format:** ESLint (normal + strict) + Prettier checks
 2. **TypeScript:** Type checking with `tsc`
 3. **Build:** Next.js production build with artifact upload
@@ -88,22 +97,26 @@ Navigate to: **Security → Code scanning → CodeQL**
 ### New Enhancements
 
 #### Job Summaries
+
 - Displays results in GitHub Actions UI
 - Shows status of each job (✅ or ❌)
 - Overall pipeline status
 - Commit and branch information
 
 #### PR Comments
+
 - Automatically comments on PRs with CI results
 - Visual status indicators (emojis)
 - Direct links to failed jobs
 - Updates on each push
 
 #### Artifact Management
+
 - Build artifacts (.next) uploaded for 7 days
 - Available for debugging and deployment
 
 ### Example Output
+
 ```
 ## CI Pipeline Summary
 
@@ -125,6 +138,7 @@ Navigate to: **Security → Code scanning → CodeQL**
 ## 5. Docker Support 🐳
 
 ### Files Created
+
 - `Dockerfile` - Multi-stage production image
 - `docker-compose.yml` - Full stack (backend + frontend)
 - `.dockerignore` - Optimized build context
@@ -132,6 +146,7 @@ Navigate to: **Security → Code scanning → CodeQL**
 - `.github/workflows/docker-build.yml` - Automated builds
 
 ### Dockerfile Features
+
 - **Multi-stage build:** deps → builder → runner (minimal final image)
 - **Security hardened:** Runs as non-root user (`nextjs`)
 - **Optimized:** Uses Node.js 22 Alpine, pnpm 8, Next.js standalone output
@@ -139,6 +154,7 @@ Navigate to: **Security → Code scanning → CodeQL**
 - **Production-ready:** Proper environment variables, efficient layer caching
 
 ### Docker Compose Features
+
 - **Services:** Backend (FastAPI) + Frontend (Next.js)
 - **Networking:** Isolated bridge network for inter-service communication
 - **Volumes:** Config files from backend repo, data persistence
@@ -146,6 +162,7 @@ Navigate to: **Security → Code scanning → CodeQL**
 - **Dependencies:** Frontend waits for backend to be healthy
 
 ### Docker Build Workflow Features
+
 - **Automatic builds:** On push to main/develop (when code/Docker files change)
 - **GitHub Container Registry:** Pushes images to ghcr.io
 - **Multi-tagging:** latest, branch name, PR number, commit SHA
@@ -155,6 +172,7 @@ Navigate to: **Security → Code scanning → CodeQL**
 - **Build caching:** GitHub Actions cache for faster builds
 
 ### Quick Start
+
 ```bash
 # Using Docker Compose (recommended)
 docker-compose up -d
@@ -167,6 +185,7 @@ docker run -d -p 3000:3000 \
 ```
 
 ### Docker Image Registry
+
 - **Registry:** GitHub Container Registry (ghcr.io)
 - **Image:** `ghcr.io/88simon/gun-del-sol-frontend`
 - **Tags:** `latest`, `main-<sha>`, `develop-<sha>`
@@ -178,6 +197,7 @@ docker run -d -p 3000:3000 \
 **File:** `next.config.ts` (updated)
 
 ### What Changed
+
 - Added `output: 'standalone'` for Docker support
 - Enables optimized standalone builds (only includes necessary files)
 - Required for Docker production deployments
@@ -189,6 +209,7 @@ docker run -d -p 3000:3000 \
 **File:** `README.md` (enhanced)
 
 ### What Was Added
+
 - **Docker Setup section:** Complete Docker instructions
 - **CI/CD section:** Overview of all automated checks
 - **Quick commands:** Local development and CI validation
@@ -203,6 +224,7 @@ docker run -d -p 3000:3000 \
 **File:** `.github/BRANCH_PROTECTION.md`
 
 ### What It Covers
+
 - Recommended settings for `main` branch
 - Recommended settings for `develop` branch
 - Optional feature branch protection
@@ -229,13 +251,14 @@ docker run -d -p 3000:3000 \
 
 ### Current Workflows
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| **CI** | Push/PR to main/develop | Main pipeline (lint, type-check, build) |
-| **CodeQL Analysis** | Push/PR + weekly | Security vulnerability scanning |
-| **Docker Build** | Push/PR + manual | Builds, tests, and pushes Docker images |
+| Workflow            | Trigger                 | Purpose                                 |
+| ------------------- | ----------------------- | --------------------------------------- |
+| **CI**              | Push/PR to main/develop | Main pipeline (lint, type-check, build) |
+| **CodeQL Analysis** | Push/PR + weekly        | Security vulnerability scanning         |
+| **Docker Build**    | Push/PR + manual        | Builds, tests, and pushes Docker images |
 
 ### Workflow Dependencies
+
 ```
 PR to main
   ↓
@@ -255,6 +278,7 @@ PR to main
 ## 10. Action Items
 
 ### Immediate (Already Done)
+
 1. ✅ Dependabot configuration created
 2. ✅ CodeQL workflow added
 3. ✅ README badges added
@@ -265,6 +289,7 @@ PR to main
 8. ✅ next.config.ts updated with standalone output
 
 ### Soon (Recommended)
+
 9. ⏳ Implement branch protection rules using `.github/BRANCH_PROTECTION.md` guide
 10. ⏳ Create `.github/CODEOWNERS` file (optional but recommended)
 11. ⏳ Test Docker setup locally: `docker-compose up`
@@ -272,6 +297,7 @@ PR to main
 13. ⏳ Verify all CI workflows pass on next push
 
 ### Optional (Future)
+
 14. ⏳ Add E2E tests with Playwright
 15. ⏳ Set up automatic security advisory notifications
 16. ⏳ Configure deployment workflows (Vercel, Netlify, or self-hosted)
@@ -285,18 +311,21 @@ PR to main
 ## 11. Monitoring and Maintenance
 
 ### Weekly Tasks
+
 - Review Dependabot PRs and merge approved updates
 - Check CodeQL Security tab for new vulnerabilities
 - Monitor Docker build success rate
 - Review CI pipeline performance
 
 ### Monthly Tasks
+
 - Review CI/CD pipeline efficiency
 - Update branch protection rules if workflows change
 - Audit failed workflow runs and address common issues
 - Check bundle sizes and optimize if growing
 
 ### Quarterly Tasks
+
 - Review and update Node.js/pnpm versions
 - Evaluate new CI/CD tools and practices
 - Update documentation
@@ -307,17 +336,20 @@ PR to main
 ## 12. Troubleshooting
 
 ### Dependabot Not Creating PRs
+
 - Check `.github/dependabot.yml` syntax
 - Verify repository has enabled Dependabot in Settings → Security
 - Check Dependabot logs in Insights → Dependency graph → Dependabot
 
 ### CodeQL Scan Failing
+
 - Ensure dependencies install correctly (check pnpm-lock.yaml)
 - Check for syntax errors in TypeScript/JavaScript code
 - Review CodeQL logs in Actions tab
 - Verify Node.js version compatibility
 
 ### Docker Build Failing
+
 - Verify `package.json` and `pnpm-lock.yaml` are valid
 - Check Dockerfile syntax
 - Ensure `output: 'standalone'` is in next.config.ts
@@ -325,17 +357,20 @@ PR to main
 - Review Docker build logs in Actions tab
 
 ### CI Workflow Failing
+
 - **Lint errors:** Run `pnpm lint:fix` locally
 - **Type errors:** Run `pnpm type-check` and fix issues
 - **Build errors:** Run `pnpm build` locally to reproduce
 - **Prettier errors:** Run `pnpm format` to auto-fix
 
 ### PR Comments Not Appearing
+
 - Check GitHub Actions permissions in repo settings
 - Verify `actions/github-script@v7` has proper permissions
 - Review workflow logs for PR comment step
 
 ### Badges Not Updating
+
 - Workflows must run at least once
 - Check workflow names match badge URLs exactly
 - Wait a few minutes after workflow runs for cache to update
@@ -346,6 +381,7 @@ PR to main
 ## 13. Resources
 
 ### Documentation
+
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Dependabot Documentation](https://docs.github.com/en/code-security/dependabot)
 - [CodeQL Documentation](https://codeql.github.com/docs/)
@@ -354,11 +390,13 @@ PR to main
 - [Branch Protection Documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches)
 
 ### Internal Docs
+
 - [Branch Protection Guide](.github/BRANCH_PROTECTION.md)
 - [Backend CI/CD Enhancements](../solscan_hotkey/.github/CI_CD_ENHANCEMENTS.md)
 - [Backend Branch Protection](../solscan_hotkey/.github/BRANCH_PROTECTION.md)
 
 ### External Resources
+
 - [Next.js Deployment Best Practices](https://nextjs.org/docs/deployment)
 - [pnpm Documentation](https://pnpm.io/)
 - [TypeScript Best Practices](https://www.typescriptlang.org/docs/)
@@ -383,6 +421,7 @@ Track these metrics to measure CI/CD effectiveness:
 ## 15. Comparison: Before vs. After
 
 ### Before
+
 - ❌ Manual dependency updates
 - ❌ No security scanning
 - ❌ Basic CI with no summaries or PR comments
@@ -392,6 +431,7 @@ Track these metrics to measure CI/CD effectiveness:
 - ❌ Manual local validation required
 
 ### After
+
 - ✅ Automated dependency updates with smart grouping
 - ✅ CodeQL security scanning (weekly + on changes)
 - ✅ Enhanced CI with rich summaries and PR comments

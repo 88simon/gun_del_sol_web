@@ -1,12 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import {
-  getWalletTags,
-  addWalletTag,
-  removeWalletTag,
-  WalletTag
-} from '@/lib/api';
+import { addWalletTag, removeWalletTag } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Plus, Tag } from 'lucide-react';

@@ -1,7 +1,8 @@
 // Auth disabled for development - Gun Del Sol doesn't need authentication for local use
 import { NextRequest, NextResponse } from 'next/server';
 
-export default function middleware(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function middleware(_req: NextRequest) {
   return NextResponse.next();
 }
 

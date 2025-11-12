@@ -13,20 +13,14 @@ import {
   TokenDetail,
   formatTimestamp,
   downloadAxiomJson,
-  getTokenById
+  getTokenById,
+  API_BASE_URL
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Trash2, Search, Copy, Tags, Info } from 'lucide-react';
+import { Eye, Download, Trash2, Search, Copy, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Tooltip,
   TooltipContent,
@@ -244,10 +238,8 @@ interface TokensTableProps {
 export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   const router = useRouter();
   const { isCodexOpen } = useCodex();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedToken, setSelectedToken] = useState<TokenDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [globalFilter, setGlobalFilter] = useState('');
   const [isCompactMode, setIsCompactMode] = useState(isCodexOpen);
 
@@ -263,29 +255,23 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   }, [isCodexOpen]);
 
   const handleViewDetails = async (id: number) => {
-    setIsLoadingDetails(true);
     try {
       const tokenDetails = await getTokenById(id);
       setSelectedToken(tokenDetails);
       setIsModalOpen(true);
     } catch (error) {
-      console.error('Error loading token details:', error);
       alert('Failed to load token details. Please try again.');
-    } finally {
-      setIsLoadingDetails(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    setIsDeleting(true);
-
     // Optimistically update UI immediately
     if (onDelete) {
       onDelete(id);
     }
 
     try {
-      const response = await fetch(`http://localhost:5001/api/tokens/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/tokens/${id}`, {
         method: 'DELETE',
         cache: 'no-store'
       });
@@ -296,17 +282,15 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
 
       toast.success('Token deleted successfully');
     } catch (error) {
-      console.error('Error deleting token:', error);
       toast.error('Failed to delete token. Please try again.');
       // On error, refresh to restore correct state
       router.refresh();
-    } finally {
-      setIsDeleting(false);
     }
   };
 
   const columns = useMemo(
     () => createColumns(handleViewDetails, handleDelete, isCompactMode),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isCompactMode]
   );
 

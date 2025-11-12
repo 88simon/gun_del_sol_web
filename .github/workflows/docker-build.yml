@@ -4,25 +4,25 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - "src/**"
-      - "public/**"
-      - "Dockerfile"
-      - "docker-compose.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "next.config.ts"
-      - ".github/workflows/docker-build.yml"
+      - 'src/**'
+      - 'public/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'next.config.ts'
+      - '.github/workflows/docker-build.yml'
   pull_request:
     branches: [main]
     paths:
-      - "src/**"
-      - "public/**"
-      - "Dockerfile"
-      - "docker-compose.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "next.config.ts"
-      - ".github/workflows/docker-build.yml"
+      - 'src/**'
+      - 'public/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'next.config.ts'
+      - '.github/workflows/docker-build.yml'
   workflow_dispatch: # Allow manual trigger
 
 env:

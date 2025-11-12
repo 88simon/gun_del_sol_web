@@ -1,41 +1,111 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  startTransition
+} from 'react';
+import dynamic from 'next/dynamic';
 import {
   getTokens,
   getMultiTokenWallets,
   TokensResponse,
   MultiTokenWalletsResponse,
-  refreshWalletBalances
+  refreshWalletBalances,
+  API_BASE_URL
 } from '@/lib/api';
 import { shouldLog } from '@/lib/debug';
 import { TokensTable } from './tokens-table';
 import { Button } from '@/components/ui/button';
-import {
-  Copy,
-  CalendarIcon,
-  X,
-  ChevronDown,
-  ChevronUp,
-  RefreshCw
-} from 'lucide-react';
 import { toast } from 'sonner';
-import { WalletTags } from '@/components/wallet-tags';
-import {
-  AdditionalTagsPopover,
-  WalletAddressWithBotIndicator
-} from '@/components/additional-tags';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
 import { WalletTagsProvider } from '@/contexts/WalletTagsContext';
 import { useAnalysisNotifications } from '@/hooks/useAnalysisNotifications';
-import { useApiSettings } from '@/contexts/ApiSettingsContext';
+
+// Lazy load heavy components to defer loading until needed
+const Calendar = dynamic(
+  () =>
+    import('@/components/ui/calendar').then((mod) => ({
+      default: mod.Calendar
+    })),
+  { ssr: false }
+);
+const WalletTags = dynamic(
+  () =>
+    import('@/components/wallet-tags').then((mod) => ({
+      default: mod.WalletTags
+    })),
+  { ssr: false }
+);
+const AdditionalTagsPopover = dynamic(
+  () =>
+    import('@/components/additional-tags').then((mod) => ({
+      default: mod.AdditionalTagsPopover
+    })),
+  { ssr: false }
+);
+const WalletAddressWithBotIndicator = dynamic(
+  () =>
+    import('@/components/additional-tags').then((mod) => ({
+      default: mod.WalletAddressWithBotIndicator
+    })),
+  { ssr: false }
+);
+const Popover = dynamic(
+  () =>
+    import('@/components/ui/popover').then((mod) => ({ default: mod.Popover })),
+  { ssr: false }
+);
+const PopoverContent = dynamic(
+  () =>
+    import('@/components/ui/popover').then((mod) => ({
+      default: mod.PopoverContent
+    })),
+  { ssr: false }
+);
+const PopoverTrigger = dynamic(
+  () =>
+    import('@/components/ui/popover').then((mod) => ({
+      default: mod.PopoverTrigger
+    })),
+  { ssr: false }
+);
+
+// Lazy load icons - only load when component renders
+const Copy = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.Copy })),
+  { ssr: false }
+);
+const CalendarIcon = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.CalendarIcon })),
+  { ssr: false }
+);
+const X = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.X })),
+  { ssr: false }
+);
+const ChevronDown = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.ChevronDown })),
+  { ssr: false }
+);
+const ChevronUp = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.ChevronUp })),
+  { ssr: false }
+);
+const RefreshCw = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.RefreshCw })),
+  { ssr: false }
+);
+
+// Lazy load framer-motion only when wallet rows are visible
+const MotionTr = dynamic(
+  () => import('framer-motion').then((mod) => ({ default: mod.motion.tr })),
+  {
+    ssr: false,
+    loading: () => <tr className='border-b opacity-50'></tr>
+  }
+);
 
 export default function TokensPage() {
   const [data, setData] = useState<TokensResponse | null>(null);
@@ -61,28 +131,28 @@ export default function TokensPage() {
   const walletsPerPage = 5;
 
   // Use API settings from context
-  const { apiSettings } = useApiSettings();
 
   const fetchData = () => {
     setLoading(true);
-    Promise.all([getTokens(), getMultiTokenWallets(2)])
-      .then(([tokensData, walletsData]) => {
-        setData(tokensData);
-        setMultiWallets(walletsData);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch data:', err);
-        setError(
-          'Failed to load data. Make sure Flask is running on localhost:5001'
-        );
-      })
-      .finally(() => setLoading(false));
+    // Use startTransition to defer non-urgent updates and avoid blocking paint
+    startTransition(() => {
+      Promise.all([getTokens(), getMultiTokenWallets(2)])
+        .then(([tokensData, walletsData]) => {
+          setData(tokensData);
+          setMultiWallets(walletsData);
+        })
+        .catch(() => {
+          setError(
+            'Failed to load data. Make sure the FastAPI backend is running on localhost:5003'
+          );
+        })
+        .finally(() => setLoading(false));
+    });
   };
 
   // WebSocket notifications for real-time analysis updates
-  useAnalysisNotifications((data) => {
+  useAnalysisNotifications(() => {
     if (shouldLog()) {
-      console.log('[WebSocket] Analysis completed, refreshing data...', data);
     }
     // Refresh the tokens list when analysis completes
     fetchData();
@@ -105,9 +175,7 @@ export default function TokensPage() {
 
     // Request notification permission silently (no test notification on every refresh)
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then((permission) => {
-        console.log('Notification permission:', permission);
-      });
+      Notification.requestPermission().then(() => {});
     }
   }, []);
 
@@ -122,14 +190,13 @@ export default function TokensPage() {
     // Initialize lastJobId on mount to prevent showing old notifications
     const initializeLastJobId = async () => {
       try {
-        const response = await fetch('http://localhost:5001/analysis');
+        const response = await fetch(`${API_BASE_URL}/analysis`);
         const analysisData = await response.json();
 
         if (analysisData.jobs && analysisData.jobs.length > 0) {
           const latestJob = analysisData.jobs[0];
           if (latestJob.status === 'completed') {
             setLastJobId(latestJob.job_id);
-            console.log('[Poll] Initialized lastJobId to:', latestJob.job_id);
           }
 
           // Check if there are any active jobs
@@ -138,9 +205,7 @@ export default function TokensPage() {
           );
           setHasActiveJobs(activeJobs);
         }
-      } catch (err) {
-        console.error('Failed to initialize lastJobId:', err);
-      }
+      } catch (err) {}
     };
 
     initializeLastJobId();
@@ -155,8 +220,7 @@ export default function TokensPage() {
       // OPTIMIZATION: Only poll if there are active jobs or if we haven't checked recently
       // Check every 10th poll even when no active jobs (to catch new analyses started from AHK)
       if (!hasActiveJobs && pollsSinceLastActive < 10) {
-        console.log('[Poll] No active jobs, skipping poll');
-        setPollsSinceLastActive(pollsSinceLastActive + 1);
+        setPollsSinceLastActive((prev) => prev + 1);
         return;
       }
 
@@ -164,7 +228,7 @@ export default function TokensPage() {
       setPollsSinceLastActive(0);
 
       try {
-        const response = await fetch('http://localhost:5001/analysis');
+        const response = await fetch(`${API_BASE_URL}/analysis`);
         const analysisData = await response.json();
 
         if (analysisData.jobs && analysisData.jobs.length > 0) {
@@ -176,18 +240,11 @@ export default function TokensPage() {
           );
           setHasActiveJobs(activeJobs);
 
-          console.log(
-            `[Poll] Latest job: ${latestJob.job_id}, Last seen: ${lastJobId}, Status: ${latestJob.status}, Active jobs: ${activeJobs}`
-          );
-
           // Check if there's a new completed job we haven't seen yet
           if (
             latestJob.status === 'completed' &&
             latestJob.job_id !== lastJobId
           ) {
-            console.log(
-              '[Poll] New analysis completed! Showing notification...'
-            );
             setLastJobId(latestJob.job_id);
             // Refresh the tokens list without showing loading state
             Promise.all([getTokens(), getMultiTokenWallets(2)])
@@ -221,9 +278,7 @@ export default function TokensPage() {
                   };
                 }
               })
-              .catch((err) => {
-                console.error('Failed to refresh data:', err);
-              });
+              .catch(() => {});
           }
         } else {
           // No jobs at all, stop polling
@@ -231,20 +286,18 @@ export default function TokensPage() {
         }
       } catch (err) {
         // Silently fail - don't spam errors if backend is temporarily unavailable
-        console.error('Failed to check analysis status:', err);
       }
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastJobId, hasActiveJobs]);
 
   // Pause polling when page is hidden (tab switched or minimized)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        console.log('[Poll] Page hidden, pausing updates');
       } else {
-        console.log('[Poll] Page visible, resuming updates');
         // Check for new jobs immediately when tab becomes visible
         if (hasActiveJobs) {
           fetchData();
@@ -329,7 +382,6 @@ export default function TokensPage() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to refresh balances');
-      console.error('[Balance Refresh] Error:', error);
     }
   };
 
@@ -421,12 +473,6 @@ export default function TokensPage() {
             variant='outline'
             size='sm'
             onClick={() => {
-              console.log(
-                '[Test] Notification API available:',
-                'Notification' in window
-              );
-              console.log('[Test] Permission status:', Notification.permission);
-
               if (!('Notification' in window)) {
                 toast.error('Notifications not supported in this browser');
                 return;
@@ -440,7 +486,6 @@ export default function TokensPage() {
               }
 
               try {
-                console.log('[Test] Creating notification...');
                 const testNotif = new Notification('Test Notification', {
                   body: 'This is a test notification. Tab out to test!',
                   icon: '/favicon.ico',
@@ -450,20 +495,15 @@ export default function TokensPage() {
                 });
 
                 testNotif.onshow = () =>
-                  console.log('[Test] Notification shown');
-                testNotif.onclick = () => {
-                  console.log('[Test] Notification clicked');
-                  window.focus();
-                };
-                testNotif.onerror = (e) =>
-                  console.error('[Test] Notification error:', e);
-
-                setTimeout(() => testNotif.close(), 5000);
+                  (testNotif.onclick = () => {
+                    window.focus();
+                  });
+                testNotif.onerror = () =>
+                  setTimeout(() => testNotif.close(), 5000);
                 toast.success(
                   'Test notification created! Check if it appears.'
                 );
               } catch (error: any) {
-                console.error('[Test] Failed to create notification:', error);
                 toast.error(`Failed: ${error.message || 'Unknown error'}`);
               }
             }}
@@ -607,7 +647,7 @@ export default function TokensPage() {
                       wallet.wallet_address
                     );
                     return (
-                      <motion.tr
+                      <MotionTr
                         key={wallet.wallet_address}
                         className={`cursor-pointer border-b ${
                           isSelected ? 'bg-primary/20' : ''
@@ -722,7 +762,7 @@ export default function TokensPage() {
                             ))}
                           </div>
                         </td>
-                      </motion.tr>
+                      </MotionTr>
                     );
                   })}
                 </tbody>

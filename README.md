@@ -41,17 +41,20 @@ This is the frontend web interface for Gun Del Sol, built with:
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/88simon/gun_del_sol_web.git
 cd gun_del_sol_web
 ```
 
 2. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 3. Start the development server:
+
 ```bash
 pnpm dev
 ```
@@ -78,6 +81,7 @@ docker-compose down
 ```
 
 **Frontend only (manual Docker build):**
+
 ```bash
 docker build -t gun-del-sol-frontend .
 docker run -d -p 3000:3000 \
@@ -121,6 +125,7 @@ Gun Del Sol Web includes comprehensive CI/CD pipelines with GitHub Actions:
 - **Dependency Management:** Dependabot automatically creates PRs for package updates (grouped by category)
 
 **Quick commands:**
+
 ```bash
 # Install dependencies
 pnpm install
@@ -143,6 +148,7 @@ pnpm start
 ```
 
 📚 **Documentation:**
+
 - [CI/CD Enhancement Summary](.github/CI_CD_ENHANCEMENTS.md)
 - [Branch Protection Guide](.github/BRANCH_PROTECTION.md)
 

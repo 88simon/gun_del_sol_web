@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface WalletTag {
   tag: string;
@@ -42,7 +43,7 @@ export function WalletTagsProvider({
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/wallets/batch-tags', {
+      const response = await fetch(`${API_BASE_URL}/wallets/batch-tags`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -57,7 +58,6 @@ export function WalletTagsProvider({
       const data = await response.json();
       setTagsCache(data);
     } catch (error) {
-      console.error('Failed to fetch batch wallet tags:', error);
       setTagsCache({});
     } finally {
       setIsLoading(false);
@@ -66,6 +66,7 @@ export function WalletTagsProvider({
 
   useEffect(() => {
     fetchTags();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(walletAddresses)]);
 
   // Listen for tag changes from other components
@@ -80,9 +81,7 @@ export function WalletTagsProvider({
 
     const fetchSingleWalletTags = async (address: string) => {
       try {
-        const response = await fetch(
-          `http://localhost:5001/wallets/${address}/tags`
-        );
+        const response = await fetch(`${API_BASE_URL}/wallets/${address}/tags`);
         if (response.ok) {
           const data = await response.json();
           setTagsCache((prev) => ({
@@ -90,9 +89,7 @@ export function WalletTagsProvider({
             [address]: data.tags || []
           }));
         }
-      } catch (error) {
-        console.error(`Failed to refresh tags for ${address}:`, error);
-      }
+      } catch (error) {}
     };
 
     window.addEventListener(

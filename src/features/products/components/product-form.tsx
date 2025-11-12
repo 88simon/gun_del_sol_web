@@ -64,9 +64,9 @@ export default function ProductForm({
 
   const router = useRouter();
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function onSubmit(_values: z.infer<typeof formSchema>) {
     // Form submission logic would be implemented here
-    console.log(values);
     router.push('/dashboard/product');
   }
 

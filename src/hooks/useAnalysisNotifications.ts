@@ -38,7 +38,6 @@ const globalMessageHandler = (event: MessageEvent) => {
   try {
     const message: WebSocketMessage = JSON.parse(event.data);
     if (shouldLog()) {
-      console.log('[WebSocket] Received message:', message);
     }
 
     if (message.event === 'analysis_complete') {
@@ -51,10 +50,6 @@ const globalMessageHandler = (event: MessageEvent) => {
         now - lastProcessedTime < 2000
       ) {
         if (shouldLog()) {
-          console.log(
-            '[WebSocket] Skipping duplicate notification for job:',
-            data.job_id
-          );
         }
         return;
       }
@@ -108,7 +103,6 @@ const globalMessageHandler = (event: MessageEvent) => {
     }
   } catch (error) {
     if (shouldLog()) {
-      console.error('[WebSocket] Error parsing message:', error);
     }
   }
 };
@@ -150,7 +144,6 @@ export function useAnalysisNotifications(
       if (globalWs && globalWs.readyState === WebSocket.OPEN) {
         wsRef.current = globalWs;
         if (shouldLog()) {
-          console.log('[WebSocket] Reusing existing connection');
         }
         return;
       }
@@ -163,22 +156,19 @@ export function useAnalysisNotifications(
 
         ws.onopen = () => {
           if (shouldLog()) {
-            console.log('[WebSocket] Connected to FastAPI WebSocket server');
           }
         };
 
         // Use the global message handler (only attached once)
         ws.onmessage = globalMessageHandler;
 
-        ws.onerror = (error) => {
+        ws.onerror = () => {
           if (shouldLog()) {
-            console.error('[WebSocket] Connection error:', error);
           }
         };
 
         ws.onclose = () => {
           if (shouldLog()) {
-            console.log('[WebSocket] Disconnected from server');
           }
           globalWs = null;
           wsRef.current = null;
@@ -186,7 +176,6 @@ export function useAnalysisNotifications(
           // Attempt to reconnect after 3 seconds
           if (connectionCount > 0) {
             if (shouldLog()) {
-              console.log('[WebSocket] Reconnecting in 3 seconds...');
             }
             reconnectTimeoutRef.current = setTimeout(connect, 3000);
           }
@@ -203,7 +192,6 @@ export function useAnalysisNotifications(
       connectionCount--;
 
       if (shouldLog()) {
-        console.log('[WebSocket] Cleaning up connection');
       }
 
       if (reconnectTimeoutRef.current) {

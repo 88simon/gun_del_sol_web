@@ -1,9 +1,9 @@
 /**
  * Gun Del Sol API Client
- * Fetches data from the Flask backend running on localhost:5001
+ * Fetches data from the FastAPI backend running on localhost:5003
  */
 
-const API_BASE_URL = 'http://localhost:5003'; // FastAPI (was 5001 Flask)
+export const API_BASE_URL = 'http://localhost:5003';
 
 export interface Token {
   id: number;

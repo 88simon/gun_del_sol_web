@@ -128,19 +128,18 @@ export function AdditionalTagsPopover({
 export function useWalletBotTag(walletAddress: string) {
   const [isBot, setIsBot] = useState(false);
 
-  useEffect(() => {
-    checkBotTag();
-  }, [walletAddress]);
-
   const checkBotTag = async () => {
     try {
       const walletTags = await getWalletTags(walletAddress);
       const hasBot = walletTags.some((t) => t.tag.toLowerCase() === 'bot');
       setIsBot(hasBot);
-    } catch (error) {
-      console.error('Failed to check bot tag:', error);
-    }
+    } catch (error) {}
   };
+
+  useEffect(() => {
+    checkBotTag();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress]);
 
   return isBot;
 }
@@ -148,14 +147,13 @@ export function useWalletBotTag(walletAddress: string) {
 // Component to display wallet address with bot emoji if tagged
 export function WalletAddressWithBotIndicator({
   walletAddress,
-  children,
-  onTagsChange
+  children
 }: {
   walletAddress: string;
   children: React.ReactNode;
   onTagsChange?: () => void;
 }) {
-  const { tags, isLoading } = useWalletTags(walletAddress);
+  const { tags } = useWalletTags(walletAddress);
   const isBot = tags.some((t) => t.tag.toLowerCase() === 'bot');
 
   return (

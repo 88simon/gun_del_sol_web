@@ -34,10 +34,9 @@ export default function TrashPage() {
       .then((trashData) => {
         setData(trashData);
       })
-      .catch((err) => {
-        console.error('Failed to fetch trash:', err);
+      .catch(() => {
         setError(
-          'Failed to load trash. Make sure Flask is running on localhost:5001'
+          'Failed to load trash. Make sure the FastAPI backend is running on localhost:5003'
         );
       })
       .finally(() => setLoading(false));
@@ -54,7 +53,6 @@ export default function TrashPage() {
       toast.success(`"${token.token_name || 'Token'}" restored successfully`);
       fetchData();
     } catch (error) {
-      console.error('Error restoring token:', error);
       toast.error('Failed to restore token. Please try again.');
     } finally {
       setProcessingId(null);
@@ -76,7 +74,6 @@ export default function TrashPage() {
       toast.success(`"${token.token_name || 'Token'}" permanently deleted`);
       fetchData();
     } catch (error) {
-      console.error('Error permanently deleting token:', error);
       toast.error('Failed to delete token. Please try again.');
     } finally {
       setProcessingId(null);
@@ -136,8 +133,8 @@ export default function TrashPage() {
           </div>
         </div>
       ) : (
-        <div className='rounded-md border overflow-hidden'>
-          <div className='overflow-x-auto max-w-full'>
+        <div className='overflow-hidden rounded-md border'>
+          <div className='max-w-full overflow-x-auto'>
             <Table className='w-full'>
               <TableHeader>
                 <TableRow>
@@ -152,7 +149,7 @@ export default function TrashPage() {
                   <TableRow key={token.id}>
                     <TableCell>
                       <div className='min-w-[120px]'>
-                        <div className='font-medium text-sm'>
+                        <div className='text-sm font-medium'>
                           {token.token_name || 'Unknown'}
                         </div>
                         <div className='text-muted-foreground text-xs uppercase'>
@@ -171,7 +168,10 @@ export default function TrashPage() {
                           {token.token_address.slice(0, 8)}...
                           {token.token_address.slice(-6)}
                         </a>
-                        <Badge variant='secondary' className='font-mono text-xs'>
+                        <Badge
+                          variant='secondary'
+                          className='font-mono text-xs'
+                        >
                           {token.acronym}
                         </Badge>
                       </div>
@@ -192,7 +192,7 @@ export default function TrashPage() {
                           onClick={() => handleRestore(token)}
                           disabled={processingId === token.id}
                         >
-                          <RotateCcw className='h-4 w-4 mr-1' />
+                          <RotateCcw className='mr-1 h-4 w-4' />
                           Restore
                         </Button>
                         <Button
@@ -202,7 +202,7 @@ export default function TrashPage() {
                           onClick={() => handlePermanentDelete(token)}
                           disabled={processingId === token.id}
                         >
-                          <Trash2 className='h-4 w-4 mr-1' />
+                          <Trash2 className='mr-1 h-4 w-4' />
                           Delete Forever
                         </Button>
                       </div>

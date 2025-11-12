@@ -18,10 +18,7 @@ interface CodexModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CodexModal({
-  open,
-  onOpenChange
-}: CodexModalProps) {
+export function CodexModal({ open, onOpenChange }: CodexModalProps) {
   const [wallets, setWallets] = useState<CodexWallet[]>([]);
   const [filteredWallets, setFilteredWallets] = useState<CodexWallet[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,7 +67,10 @@ export function CodexModal({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
-      <SheetContent side='right' className='w-[600px] sm:w-[700px] flex flex-col border-l'>
+      <SheetContent
+        side='right'
+        className='flex w-[600px] flex-col border-l sm:w-[700px]'
+      >
         <SheetHeader>
           <SheetTitle>Codex</SheetTitle>
           <SheetDescription>
@@ -78,8 +78,8 @@ export function CodexModal({
           </SheetDescription>
         </SheetHeader>
 
-        <div className='relative mb-4 mt-4'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+        <div className='relative mt-4 mb-4'>
+          <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform' />
           <Input
             placeholder='Search by wallet address or tag...'
             value={searchQuery}
@@ -88,13 +88,13 @@ export function CodexModal({
           />
         </div>
 
-        <div className='flex-1 overflow-y-auto space-y-2 pr-2'>
+        <div className='flex-1 space-y-2 overflow-y-auto pr-2'>
           {loading ? (
-            <div className='text-center py-8 text-muted-foreground'>
+            <div className='text-muted-foreground py-8 text-center'>
               Loading...
             </div>
           ) : filteredWallets.length === 0 ? (
-            <div className='text-center py-8 text-muted-foreground'>
+            <div className='text-muted-foreground py-8 text-center'>
               {searchQuery
                 ? 'No wallets match your search'
                 : 'No tagged wallets found'}
@@ -103,10 +103,10 @@ export function CodexModal({
             filteredWallets.map((wallet) => (
               <div
                 key={wallet.wallet_address}
-                className='border rounded-lg p-3 hover:bg-muted/50 transition-colors cursor-pointer'
+                className='hover:bg-muted/50 cursor-pointer rounded-lg border p-3 transition-colors'
                 onClick={() => copyToClipboard(wallet.wallet_address)}
               >
-                <div className='font-mono text-sm mb-2 break-all'>
+                <div className='mb-2 font-mono text-sm break-all'>
                   {wallet.wallet_address}
                 </div>
                 <div className='flex flex-wrap items-center gap-1'>
@@ -115,7 +115,7 @@ export function CodexModal({
                       key={tagObj.tag}
                       className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs ${
                         tagObj.is_kol
-                          ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold'
+                          ? 'bg-amber-500/20 font-semibold text-amber-700 dark:text-amber-400'
                           : 'bg-primary/10 text-primary'
                       }`}
                     >
@@ -130,7 +130,7 @@ export function CodexModal({
           )}
         </div>
 
-        <div className='text-sm text-muted-foreground pt-2 border-t mt-2'>
+        <div className='text-muted-foreground mt-2 border-t pt-2 text-sm'>
           Showing {filteredWallets.length} of {wallets.length} wallets
         </div>
       </SheetContent>

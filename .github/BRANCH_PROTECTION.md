@@ -29,9 +29,11 @@ Navigate to: **Settings → Branches → Branch protection rules → Add rule**
 ### Status Checks
 
 - ✅ **Require status checks to pass before merging**
+
   - ✅ **Require branches to be up to date before merging** (ensures no merge conflicts)
 
   **Required status checks:**
+
   - `Lint & Format` (from CI workflow)
   - `TypeScript` (from CI workflow)
   - `Build` (from CI workflow)
@@ -126,6 +128,7 @@ Create a `.github/CODEOWNERS` file to automatically request reviews from specifi
 After setting up branch protection:
 
 1. **Test direct push prevention:**
+
    ```bash
    git checkout main
    git commit --allow-empty -m "test"
@@ -133,6 +136,7 @@ After setting up branch protection:
    ```
 
 2. **Test PR workflow:**
+
    ```bash
    git checkout -b test-branch
    # Make changes

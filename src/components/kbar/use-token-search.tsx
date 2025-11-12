@@ -2,6 +2,7 @@
 import { useRegisterActions } from 'kbar';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function useTokenSearch() {
   const router = useRouter();
@@ -11,16 +12,16 @@ export default function useTokenSearch() {
   // Fetch tokens and tags on mount
   useEffect(() => {
     // Fetch tokens
-    fetch('http://localhost:5001/analysis')
+    fetch(`${API_BASE_URL}/analysis`)
       .then((res) => res.json())
       .then((data) => setTokens(data.jobs || []))
-      .catch((err) => console.error('Failed to load tokens for search:', err));
+      .catch(() => {});
 
     // Fetch tags
-    fetch('http://localhost:5001/tags')
+    fetch(`${API_BASE_URL}/tags`)
       .then((res) => res.json())
       .then((data) => setTags(data.tags || []))
-      .catch((err) => console.error('Failed to load tags for search:', err));
+      .catch(() => {});
   }, []);
 
   // Register token actions dynamically
@@ -51,7 +52,7 @@ export default function useTokenSearch() {
     if (tags.length > 0) {
       Promise.all(
         tags.map((tag) =>
-          fetch(`http://localhost:5001/tags/${encodeURIComponent(tag)}/wallets`)
+          fetch(`${API_BASE_URL}/tags/${encodeURIComponent(tag)}/wallets`)
             .then((res) => res.json())
             .then((data) => ({ tag, wallets: data.wallets || [] }))
         )
@@ -63,9 +64,7 @@ export default function useTokenSearch() {
           });
           setTagWallets(walletsMap);
         })
-        .catch((err) =>
-          console.error('Failed to load wallets for tags:', err)
-        );
+        .catch(() => {});
     }
   }, [tags]);
 
@@ -89,8 +88,5 @@ export default function useTokenSearch() {
     });
   });
 
-  useRegisterActions([...tokenActions, ...walletActions], [
-    tokens,
-    tagWallets
-  ]);
+  useRegisterActions([...tokenActions, ...walletActions], [tokens, tagWallets]);
 }

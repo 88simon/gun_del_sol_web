@@ -18,8 +18,7 @@ export default function TokenDetailPage() {
 
     getTokenById(parseInt(id))
       .then(setToken)
-      .catch((err) => {
-        console.error('Failed to fetch token:', err);
+      .catch(() => {
         setError('Failed to load token details');
       })
       .finally(() => setLoading(false));

@@ -9,7 +9,7 @@ import {
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, ExternalLink, Copy, X, History } from 'lucide-react';
+import { Download, ExternalLink, Copy, History } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   Table,
@@ -53,8 +53,7 @@ export function TokenDetailsModal({
       setLoadingHistory(true);
       getTokenAnalysisHistory(token.id)
         .then(setHistory)
-        .catch((err) => {
-          console.error('Failed to fetch analysis history:', err);
+        .catch(() => {
           setHistory(null);
         })
         .finally(() => setLoadingHistory(false));

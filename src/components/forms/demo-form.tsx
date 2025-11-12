@@ -111,9 +111,9 @@ export default function DemoForm() {
     }
   });
 
-  const onSubmit = (data: DemoFormData) => {
-    console.log('Form submitted:', data);
-    alert('Form submitted successfully! Check console for data.');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const onSubmit = (_data: DemoFormData) => {
+    alert('Form submitted successfully!');
   };
 
   return (

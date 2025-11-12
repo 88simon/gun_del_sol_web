@@ -7,7 +7,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -35,19 +34,14 @@ import { useUser } from '@clerk/nextjs';
 import { SettingsModal } from '@/components/settings-modal';
 import { useApiSettings } from '@/contexts/ApiSettingsContext';
 import {
-  IconBell,
   IconChevronRight,
   IconChevronsDown,
-  IconCreditCard,
-  IconLogout,
   IconPhotoUp,
-  IconUserCircle,
   IconTags,
   IconSettings
 } from '@tabler/icons-react';
-import { SignOutButton } from '@clerk/nextjs';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
 
@@ -59,7 +53,6 @@ export default function AppSidebar({ onCodexToggle }: AppSidebarProps) {
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
   const { user } = useUser();
-  const router = useRouter();
   const [showSettings, setShowSettings] = React.useState(false);
   const { apiSettings, setApiSettings, defaultApiSettings } = useApiSettings();
 

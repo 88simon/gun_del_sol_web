@@ -9,6 +9,8 @@
  *   if (shouldLog()) console.log('Debug info');
  */
 
+import { API_BASE_URL } from './api';
+
 let DEBUG_MODE = false;
 let initialized = false;
 
@@ -19,7 +21,7 @@ export async function initDebugMode(): Promise<void> {
   if (initialized) return;
 
   try {
-    const response = await fetch('http://localhost:5001/api/debug-mode');
+    const response = await fetch(`${API_BASE_URL}/api/debug-mode`);
     if (response.ok) {
       const data = await response.json();
       DEBUG_MODE = data.debug_mode;

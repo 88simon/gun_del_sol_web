@@ -8,6 +8,7 @@ import React, {
   useRef
 } from 'react';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '@/lib/api';
 
 export interface ApiSettings {
   transactionLimit: number;
@@ -50,7 +51,7 @@ export function ApiSettingsProvider({
 
   // Load API settings from backend on mount (silently, no UI impact)
   useEffect(() => {
-    fetch('http://localhost:5001/api/settings', { cache: 'no-store' })
+    fetch(`${API_BASE_URL}/api/settings`, { cache: 'no-store' })
       .then((res) => res.json())
       .then((settings) => {
         // Batch state updates to avoid extra render
@@ -59,8 +60,7 @@ export function ApiSettingsProvider({
           setSettingsLoaded(true);
         });
       })
-      .catch((err) => {
-        console.error('Failed to load API settings:', err);
+      .catch(() => {
         setSettingsLoaded(true);
       });
   }, []);
@@ -77,22 +77,20 @@ export function ApiSettingsProvider({
 
     // Debounce to avoid too many requests (1 second wait after user stops adjusting)
     const timer = setTimeout(() => {
-      fetch('http://localhost:5001/api/settings', {
+      fetch(`${API_BASE_URL}/api/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiSettings)
       })
         .then((res) => res.json())
-        .then((data) => {
-          console.log('[Settings] Updated:', data.settings);
+        .then(() => {
           // Show toast notification when settings are saved
           toast.success('Settings saved', {
             description: 'Will be used for next analysis',
             duration: 2000
           });
         })
-        .catch((err) => {
-          console.error('[Settings] Failed to update:', err);
+        .catch(() => {
           toast.error('Failed to save settings');
         });
     }, 1000);
