@@ -74,24 +74,26 @@ jobs:
 
       # Build Docker image (and push if on main)
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          load: ${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64
+          platforms: ${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' && 'linux/amd64' || 'linux/amd64' }}
           build-args: |
             NEXT_PUBLIC_SENTRY_DISABLED=true
 
       # Test the built image
       - name: Test Docker image
         run: |
-          # use the locally built image (tagged by metadata action)
-          IMAGE_TAG="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
+          # use the first tag from metadata (will be loaded locally if not pushed)
+          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
 
           # run container in background
           docker run -d --name test-frontend \
