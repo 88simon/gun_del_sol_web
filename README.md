@@ -1,5 +1,13 @@
 # Gun Del Sol Web
 
+[![CI](https://github.com/88simon/gun_del_sol_web/workflows/CI/badge.svg)](https://github.com/88simon/gun_del_sol_web/actions)
+[![CodeQL](https://github.com/88simon/gun_del_sol_web/workflows/CodeQL%20Security%20Scan/badge.svg)](https://github.com/88simon/gun_del_sol_web/actions)
+[![Node.js](https://img.shields.io/badge/node-22.x-brightgreen)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-9.x-orange)](https://pnpm.io/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 Web dashboard for Gun Del Sol - A Solana token analysis and monitoring tool.
 
 ## Overview
@@ -26,8 +34,9 @@ This is the frontend web interface for Gun Del Sol, built with:
 
 ### Prerequisites
 
-- Node.js 18+ installed
-- Gun Del Sol backend running on `http://localhost:5001`
+- Node.js 22+ installed
+- pnpm 9+ installed (`npm install -g pnpm`)
+- Gun Del Sol backend running on `http://localhost:5003`
 
 ### Installation
 
@@ -39,15 +48,45 @@ cd gun_del_sol_web
 
 2. Install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 3. Start the development server:
 ```bash
-npm run dev
+pnpm dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Docker Setup (Recommended)
+
+Run the full stack (backend + frontend) with Docker Compose:
+
+```bash
+# 1. Ensure backend config files exist in sibling repo
+# See ../solscan_hotkey/README.md for backend setup
+
+# 2. Build and run with Docker Compose
+docker-compose up -d
+
+# 3. View logs
+docker-compose logs -f frontend
+docker-compose logs -f backend
+
+# 4. Stop services
+docker-compose down
+```
+
+**Frontend only (manual Docker build):**
+```bash
+docker build -t gun-del-sol-frontend .
+docker run -d -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL=http://localhost:5003 \
+  -e NEXT_PUBLIC_SENTRY_DISABLED=true \
+  gun-del-sol-frontend
+```
+
+The Docker image is automatically built and tested via GitHub Actions on every push to `main`.
 
 ## Project Structure
 
@@ -67,9 +106,53 @@ src/
 
 ## Backend Integration
 
-This frontend connects to the Gun Del Sol Flask backend API. Make sure the backend is running on port 5001 before starting the frontend.
+This frontend connects to the Gun Del Sol FastAPI backend. Make sure the backend is running on port 5003 before starting the frontend.
 
-Backend repository: [gun_del_sol](https://github.com/88simon/gun_del_sol)
+Backend repository: [solscan_hotkey](https://github.com/88simon/solscan_hotkey)
+
+## Development & CI/CD
+
+Gun Del Sol Web includes comprehensive CI/CD pipelines with GitHub Actions:
+
+- **Automated Testing:** ESLint (normal + strict), Prettier formatting checks, TypeScript type checking
+- **Automated Builds:** Next.js build verification with artifact uploads
+- **Security Scanning:** CodeQL analysis for JavaScript/TypeScript vulnerabilities
+- **Docker Support:** Automated Docker image builds with SBOM generation and Trivy vulnerability scanning
+- **Dependency Management:** Dependabot automatically creates PRs for package updates (grouped by category)
+
+**Quick commands:**
+```bash
+# Install dependencies
+pnpm install
+
+# Run all CI checks locally (before pushing)
+run_ci_checks.bat  # Windows
+./run_ci_checks.sh # Unix/Linux/macOS
+
+# Fix linting and formatting issues
+pnpm lint:fix
+
+# Type check
+pnpm type-check
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+📚 **Documentation:**
+- [CI/CD Enhancement Summary](.github/CI_CD_ENHANCEMENTS.md)
+- [Branch Protection Guide](.github/BRANCH_PROTECTION.md)
+
+## Troubleshooting
+
+- **Build errors:** Run `pnpm install` to ensure dependencies are up to date
+- **Type errors:** Check `pnpm type-check` output for specific issues
+- **Docker build fails:** Ensure `output: 'standalone'` is set in `next.config.ts`
+- **CI checks failing:** Run `run_ci_checks.bat` or `run_ci_checks.sh` locally to identify issues
+- **Backend connection issues:** Verify backend is running on port 5003 and accessible
 
 ## License
 
