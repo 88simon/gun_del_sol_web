@@ -139,6 +139,11 @@ function generateTypeScriptTypes() {
     executeCommand(
       `npx openapi-typescript ${BACKEND_OPENAPI_PATH} -o ${TEMP_TYPES_PATH}`
     );
+
+    // Format the generated types with prettier to match project style
+    log('Formatting generated types...');
+    executeCommand(`npx prettier --write ${TEMP_TYPES_PATH}`);
+
     success('TypeScript types generated');
   } catch (err: any) {
     error(`Failed to generate TypeScript types: ${err.message}`);
