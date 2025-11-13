@@ -70,8 +70,8 @@ jobs:
             # Tag with semantic version
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            # Tag with commit SHA
-            type=sha,prefix={{branch}}-
+            # Tag with commit SHA (short form)
+            type=sha
 
       # Build Docker image (and push if on main)
       - name: Build and push Docker image
