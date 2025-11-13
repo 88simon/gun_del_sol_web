@@ -18,9 +18,7 @@ import {
   mkdirSync,
   unlinkSync
 } from 'fs';
-import { join, dirname, resolve, isAbsolute } from 'path';
-import { tmpdir } from 'os';
-import { randomBytes } from 'crypto';
+import { join, dirname, resolve } from 'path';
 
 // Validate and sanitize backend repo path
 function validateBackendPath(path: string): string {
@@ -155,30 +153,20 @@ print('OpenAPI schema exported successfully!')
     if (err.code !== 'EEXIST') throw err;
   }
 
-  // Write Python script to temporary file to avoid command injection
-  // Use cryptographically random filename to prevent symlink attacks
-  const randomSuffix = randomBytes(16).toString('hex');
-  const tempScriptPath = join(tmpdir(), `openapi-gen-${randomSuffix}.py`);
+  // Execute Python script via stdin to avoid command injection and temp files
   try {
-    // Write with restricted permissions (owner read/write only)
-    writeFileSync(tempScriptPath, pythonScript, { mode: 0o600 });
-    executeCommand(
-      `python "${tempScriptPath}"`,
-      join(BACKEND_REPO_PATH, 'backend')
-    );
+    const backendDir = join(BACKEND_REPO_PATH, 'backend');
+    execSync('python', {
+      cwd: backendDir,
+      encoding: 'utf-8',
+      stdio: 'pipe',
+      input: pythonScript
+    });
+
     success('OpenAPI schema generated');
   } catch (err: any) {
     error(`Failed to generate OpenAPI schema: ${err.message}`);
     throw err;
-  } finally {
-    // Clean up temp script file
-    try {
-      if (existsSync(tempScriptPath)) {
-        unlinkSync(tempScriptPath);
-      }
-    } catch (cleanupErr) {
-      // Ignore cleanup errors
-    }
   }
 }
 
@@ -194,8 +182,9 @@ function generateTypeScriptTypes() {
       executeCommand('npm install -g openapi-typescript');
     }
 
+    // Properly quote paths to prevent command injection
     executeCommand(
-      `npx openapi-typescript ${BACKEND_OPENAPI_PATH} -o ${TEMP_TYPES_PATH}`
+      `npx openapi-typescript "${BACKEND_OPENAPI_PATH}" -o "${TEMP_TYPES_PATH}"`
     );
 
     // Format the generated types with prettier to match project style
@@ -210,9 +199,9 @@ function generateTypeScriptTypes() {
     content = content.replace(/"/g, "'");
     // Write back the formatted content
     writeFileSync(TEMP_TYPES_PATH, content);
-    // Run prettier to finalize formatting
+    // Run prettier to finalize formatting (properly quoted path)
     executeCommand(
-      `pnpm exec prettier --write --no-editorconfig ${TEMP_TYPES_PATH}`
+      `pnpm exec prettier --write --no-editorconfig "${TEMP_TYPES_PATH}"`
     );
 
     success('TypeScript types generated');
@@ -246,9 +235,9 @@ function updateTypes() {
   const newTypes = readFileSync(TEMP_TYPES_PATH, 'utf-8');
   writeFileSync(FRONTEND_TYPES_PATH, newTypes);
 
-  // Clean up temp file
+  // Clean up temp file using Node.js API instead of shell command
   if (existsSync(TEMP_TYPES_PATH)) {
-    executeCommand(`rm ${TEMP_TYPES_PATH}`);
+    unlinkSync(TEMP_TYPES_PATH);
   }
 
   success(`Types updated at ${FRONTEND_TYPES_PATH}`);
