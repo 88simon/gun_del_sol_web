@@ -23,7 +23,7 @@ const FRONTEND_TYPES_PATH = join(
   'generated',
   'api-types.ts'
 );
-const TEMP_TYPES_PATH = join(process.cwd(), '.tmp-api-types.ts');
+const TEMP_TYPES_PATH = join(process.cwd(), 'tmp-api-types.ts');
 
 const shouldUpdate = process.argv.includes('--update');
 const isCI = process.env.CI === 'true';
@@ -142,7 +142,20 @@ function generateTypeScriptTypes() {
 
     // Format the generated types with prettier to match project style
     log('Formatting generated types...');
-    executeCommand(`npx prettier --write ${TEMP_TYPES_PATH}`);
+    // Read the generated file and manually fix formatting
+    let content = readFileSync(TEMP_TYPES_PATH, 'utf-8');
+    // Convert 4-space indentation to 2-space
+    content = content.replace(/^(    )+/gm, (match) =>
+      '  '.repeat(match.length / 4)
+    );
+    // Convert double quotes to single quotes for consistency
+    content = content.replace(/"/g, "'");
+    // Write back the formatted content
+    writeFileSync(TEMP_TYPES_PATH, content);
+    // Run prettier to finalize formatting
+    executeCommand(
+      `pnpm exec prettier --write --no-editorconfig ${TEMP_TYPES_PATH}`
+    );
 
     success('TypeScript types generated');
   } catch (err: any) {
