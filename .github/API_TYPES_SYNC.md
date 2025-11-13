@@ -32,9 +32,10 @@ When changes are pushed to the `main` branch of the **backend** repository:
 2. **Generate TypeScript Types** - Using `openapi-typescript`, generates `backend/api-types.ts`
 3. **Commit to Backend** - Types are committed to the backend repository
 4. **Sync to Frontend** - Types are copied to `src/lib/generated/api-types.ts` in the frontend repository
-5. **Commit to Frontend** - A new commit is pushed to the frontend repository with the updated types
+5. **Create PR** - A pull request is created in the frontend repository with the updated types
+6. **Merge PR** - After CI passes, merge the PR to update types in frontend
 
-**Required:** The backend workflow needs a `FRONTEND_SYNC_TOKEN` secret with permissions to push to the frontend repository. If not available, it falls back to the default `github.token`.
+**Required:** The backend workflow needs a `FRONTEND_SYNC_TOKEN` secret with permissions to create PRs in the frontend repository. If not available, it falls back to the default `github.token`.
 
 ### 2. CI Guard (Frontend)
 
