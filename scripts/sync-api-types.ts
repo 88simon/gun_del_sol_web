@@ -20,6 +20,7 @@ import {
 } from 'fs';
 import { join, dirname, resolve, isAbsolute } from 'path';
 import { tmpdir } from 'os';
+import { randomBytes } from 'crypto';
 
 // Validate and sanitize backend repo path
 function validateBackendPath(path: string): string {
@@ -64,8 +65,16 @@ function success(message: string) {
 
 function executeCommand(command: string, cwd?: string): string {
   try {
+    // Validate and sanitize cwd if provided
+    const workingDir = cwd ? resolve(cwd) : process.cwd();
+
+    // Basic security check: ensure no null bytes
+    if (workingDir.includes('\0')) {
+      throw new Error('Invalid working directory: contains null bytes');
+    }
+
     return execSync(command, {
-      cwd: cwd || process.cwd(),
+      cwd: workingDir,
       encoding: 'utf-8',
       stdio: 'pipe'
     }).trim();
@@ -147,9 +156,12 @@ print('OpenAPI schema exported successfully!')
   }
 
   // Write Python script to temporary file to avoid command injection
-  const tempScriptPath = join(tmpdir(), `openapi-gen-${Date.now()}.py`);
+  // Use cryptographically random filename to prevent symlink attacks
+  const randomSuffix = randomBytes(16).toString('hex');
+  const tempScriptPath = join(tmpdir(), `openapi-gen-${randomSuffix}.py`);
   try {
-    writeFileSync(tempScriptPath, pythonScript);
+    // Write with restricted permissions (owner read/write only)
+    writeFileSync(tempScriptPath, pythonScript, { mode: 0o600 });
     executeCommand(
       `python "${tempScriptPath}"`,
       join(BACKEND_REPO_PATH, 'backend')
