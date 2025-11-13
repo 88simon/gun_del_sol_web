@@ -9,6 +9,7 @@ The Gun Del Sol project uses a FastAPI backend that automatically generates Type
 ## Architecture
 
 ### Backend (solscan_hotkey)
+
 - **Workflow:** `.github/workflows/openapi-schema.yml`
 - **Generated files:**
   - `backend/openapi.json` - OpenAPI 3.0 schema
@@ -16,6 +17,7 @@ The Gun Del Sol project uses a FastAPI backend that automatically generates Type
   - Frontend: `src/lib/generated/api-types.ts` - Auto-synced types (committed to frontend repo)
 
 ### Frontend (gun-del-sol-web)
+
 - **Workflow:** `.github/workflows/ci.yml` (api-types-check job)
 - **Script:** `scripts/sync-api-types.ts`
 - **Location:** `src/lib/generated/api-types.ts`
@@ -58,6 +60,7 @@ pnpm sync-types:update
 ```
 
 **Requirements:**
+
 - Backend repository must be cloned at `../solscan_hotkey` (relative to frontend root)
 - Python 3.11+ with backend dependencies installed
 - Node.js 20+ with pnpm
@@ -77,10 +80,12 @@ pnpm sync-types:update
 ### sync-api-types.ts
 
 **Environment Variables:**
+
 - `BACKEND_REPO_PATH` - Path to backend repository (default: `../solscan_hotkey`)
 - `CI` - Set to `true` in CI environments
 
 **Behavior:**
+
 - **Check mode** (default): Validates types are in sync, exits with code 1 if not
 - **Update mode** (`--update`): Regenerates and updates the committed types
 
@@ -89,15 +94,18 @@ pnpm sync-types:update
 ### Backend: openapi-schema.yml
 
 **Triggers:**
+
 - Push to `main` branch
 - Pull requests to `main`
 - Manual workflow dispatch
 
 **Jobs:**
+
 1. **export-schema** - Exports OpenAPI schema, uploads artifact, comments on PRs
 2. **generate-typescript** - (Only on main branch) Generates types and syncs to frontend
 
 **Permissions:**
+
 - `contents: write` - Required to commit generated types
 - `pull-requests: write` - Required to comment on PRs
 
@@ -108,6 +116,7 @@ pnpm sync-types:update
 Runs in parallel with other CI jobs (lint, type-check, build).
 
 **Steps:**
+
 1. Checkout frontend repo to `frontend-repo/`
 2. Checkout backend repo to `backend-repo/`
 3. Setup Python + pnpm
@@ -116,6 +125,7 @@ Runs in parallel with other CI jobs (lint, type-check, build).
 6. Run `pnpm sync-types:check` with custom backend path
 
 **Dependencies:**
+
 - Build job depends on: `[lint-format, type-check, api-types-check]`
 - All checks must pass before PR can be merged
 
@@ -153,11 +163,13 @@ gun-del-sol-web/ (frontend)
 If you currently have manual TypeScript interfaces in `src/lib/api.ts`:
 
 1. **Generate initial types:**
+
    ```bash
    pnpm sync-types:update
    ```
 
 2. **Import generated types:**
+
    ```typescript
    // Before (manual types)
    export interface Token {
@@ -173,6 +185,7 @@ If you currently have manual TypeScript interfaces in `src/lib/api.ts`:
    ```
 
 3. **Update API client:**
+
    - Replace manual interfaces with generated types
    - Use `paths` for request/response types
    - Use `components['schemas']` for model types
@@ -193,8 +206,10 @@ type Token = components['schemas']['Token'];
 type TokensResponse = components['schemas']['TokensResponse'];
 
 // Endpoint types
-type GetTokensResponse = paths['/api/tokens/history']['get']['responses']['200']['content']['application/json'];
-type GetTokenByIdParams = paths['/api/tokens/{id}']['get']['parameters']['path'];
+type GetTokensResponse =
+  paths['/api/tokens/history']['get']['responses']['200']['content']['application/json'];
+type GetTokenByIdParams =
+  paths['/api/tokens/{id}']['get']['parameters']['path'];
 
 // Use in API client
 export async function getTokens(): Promise<TokensResponse> {
@@ -210,6 +225,7 @@ export async function getTokens(): Promise<TokensResponse> {
 **Cause:** The committed types don't match the backend's current OpenAPI schema.
 
 **Solution:**
+
 ```bash
 # In frontend repo
 pnpm sync-types:update
@@ -221,6 +237,7 @@ git push
 ### Backend Workflow Not Syncing to Frontend
 
 **Possible causes:**
+
 1. Missing `FRONTEND_SYNC_TOKEN` secret → Check repository secrets
 2. Token lacks push permissions → Verify token scopes
 3. Frontend repo path incorrect → Check workflow checkout step
@@ -228,6 +245,7 @@ git push
 ### Local Sync Script Fails
 
 **Error: "Backend repository not found"**
+
 - Ensure backend is cloned at `../solscan_hotkey`
 - Or set `BACKEND_REPO_PATH` environment variable:
   ```bash
@@ -235,6 +253,7 @@ git push
   ```
 
 **Error: "Failed to generate OpenAPI schema"**
+
 - Ensure Python dependencies are installed:
   ```bash
   cd ../solscan_hotkey/backend
@@ -246,6 +265,7 @@ git push
 ### GitHub Token Permissions
 
 The `FRONTEND_SYNC_TOKEN` should have:
+
 - **Scope:** `repo` (full repository access)
 - **Permissions:** `contents: write`
 - **Expiry:** Set appropriate expiration (90 days recommended)
@@ -253,6 +273,7 @@ The `FRONTEND_SYNC_TOKEN` should have:
 ### Avoiding Infinite Loops
 
 The workflows are designed to avoid triggering each other:
+
 - Backend workflow only runs on main branch pushes/PRs
 - Frontend commits from bot don't trigger workflows (uses `github-actions[bot]` user)
 - If issues occur, check workflow triggers and add `if` conditions
