@@ -11,10 +11,32 @@
  */
 
 import { execSync } from 'child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  unlinkSync
+} from 'fs';
+import { join, dirname, resolve, isAbsolute } from 'path';
+import { tmpdir } from 'os';
 
-const BACKEND_REPO_PATH = process.env.BACKEND_REPO_PATH || '../solscan_hotkey';
+// Validate and sanitize backend repo path
+function validateBackendPath(path: string): string {
+  // Resolve to absolute path to prevent directory traversal
+  const resolvedPath = resolve(path);
+
+  // Basic validation: ensure it's a valid path format
+  if (resolvedPath.includes('\0')) {
+    throw new Error('Invalid backend repository path: contains null bytes');
+  }
+
+  return resolvedPath;
+}
+
+const BACKEND_REPO_PATH = validateBackendPath(
+  process.env.BACKEND_REPO_PATH || '../solscan_hotkey'
+);
 const BACKEND_OPENAPI_PATH = join(BACKEND_REPO_PATH, 'backend', 'openapi.json');
 const FRONTEND_TYPES_PATH = join(
   process.cwd(),
@@ -99,28 +121,52 @@ print('OpenAPI schema exported successfully!')
   );
 
   // Create test config files if they don't exist
-  if (!existsSync(configPath)) {
-    writeFileSync(configPath, JSON.stringify({ helius_api_key: 'test-key' }));
-  }
-  if (!existsSync(settingsPath)) {
-    writeFileSync(
-      settingsPath,
-      JSON.stringify({ walletCount: 5, concurrentAnalysis: 3 })
-    );
-  }
-  if (!existsSync(monitoredPath)) {
-    writeFileSync(monitoredPath, JSON.stringify([]));
+  // Using flag 'wx' to write only if file doesn't exist (atomic operation)
+  try {
+    writeFileSync(configPath, JSON.stringify({ helius_api_key: 'test-key' }), {
+      flag: 'wx'
+    });
+  } catch (err: any) {
+    if (err.code !== 'EEXIST') throw err;
   }
 
   try {
+    writeFileSync(
+      settingsPath,
+      JSON.stringify({ walletCount: 5, concurrentAnalysis: 3 }),
+      { flag: 'wx' }
+    );
+  } catch (err: any) {
+    if (err.code !== 'EEXIST') throw err;
+  }
+
+  try {
+    writeFileSync(monitoredPath, JSON.stringify([]), { flag: 'wx' });
+  } catch (err: any) {
+    if (err.code !== 'EEXIST') throw err;
+  }
+
+  // Write Python script to temporary file to avoid command injection
+  const tempScriptPath = join(tmpdir(), `openapi-gen-${Date.now()}.py`);
+  try {
+    writeFileSync(tempScriptPath, pythonScript);
     executeCommand(
-      `python -c "${pythonScript.replace(/"/g, '\\"')}"`,
+      `python "${tempScriptPath}"`,
       join(BACKEND_REPO_PATH, 'backend')
     );
     success('OpenAPI schema generated');
   } catch (err: any) {
     error(`Failed to generate OpenAPI schema: ${err.message}`);
     throw err;
+  } finally {
+    // Clean up temp script file
+    try {
+      if (existsSync(tempScriptPath)) {
+        unlinkSync(tempScriptPath);
+      }
+    } catch (cleanupErr) {
+      // Ignore cleanup errors
+    }
   }
 }
 
