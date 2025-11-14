@@ -791,7 +791,7 @@ export interface components {
     /** AddressNoteRequest */
     AddressNoteRequest: {
       /** Note */
-      note?: string | null;
+      note?: string;
     };
     /**
      * AnalysisCompleteNotification
@@ -891,9 +891,9 @@ export interface components {
        * @description Solana token address
        */
       address: string;
-      api_settings?: components["schemas"]["AnalysisSettings"] | null;
+      api_settings?: components["schemas"]["AnalysisSettings"];
       /** Min Usd */
-      min_usd?: number | null;
+      min_usd?: number;
       /**
        * Time Window Hours
        * @default 999999
@@ -922,7 +922,7 @@ export interface components {
       /** Token Id */
       token_id: number;
       /** Webhook Url */
-      webhook_url?: string | null;
+      webhook_url?: string;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -934,15 +934,15 @@ export interface components {
       /** Address */
       address: string;
       /** Registered At */
-      registered_at?: string | null;
+      registered_at?: string;
       /** Threshold */
-      threshold?: number | null;
+      threshold?: number;
       /** Total Notifications */
-      total_notifications?: number | null;
+      total_notifications?: number;
       /** Last Notification */
-      last_notification?: string | null;
+      last_notification?: string;
       /** Note */
-      note?: string | null;
+      note?: string;
     };
     /** ImportAddressesRequest */
     ImportAddressesRequest: {
@@ -970,7 +970,7 @@ export interface components {
       /** Token Ids */
       token_ids: number[];
       /** Wallet Balance Usd */
-      wallet_balance_usd: number | null;
+      wallet_balance_usd?: number;
     };
     /** MultiTokenWalletsResponse */
     MultiTokenWalletsResponse: {
@@ -1002,7 +1002,7 @@ export interface components {
       /** Wallet Address */
       wallet_address: string;
       /** Balance Usd */
-      balance_usd: number | null;
+      balance_usd?: number;
       /** Success */
       success: boolean;
     };
@@ -1011,9 +1011,9 @@ export interface components {
       /** Address */
       address: string;
       /** Note */
-      note?: string | null;
+      note?: string;
       /** Timestamp */
-      timestamp?: string | null;
+      timestamp?: string;
     };
     /** RemoveTagRequest */
     RemoveTagRequest: {
@@ -1032,25 +1032,25 @@ export interface components {
       /** Token Address */
       token_address: string;
       /** Token Name */
-      token_name: string | null;
+      token_name?: string;
       /** Token Symbol */
-      token_symbol: string | null;
+      token_symbol?: string;
       /** Acronym */
       acronym: string;
       /** Analysis Timestamp */
       analysis_timestamp: string;
       /** First Buy Timestamp */
-      first_buy_timestamp: string | null;
+      first_buy_timestamp?: string;
       /** Wallets Found */
       wallets_found: number;
       /** Credits Used */
-      credits_used?: number | null;
+      credits_used?: number;
       /** Last Analysis Credits */
-      last_analysis_credits?: number | null;
+      last_analysis_credits?: number;
       /** Wallet Addresses */
-      wallet_addresses?: string[] | null;
+      wallet_addresses?: string[];
       /** Deleted At */
-      deleted_at?: string | null;
+      deleted_at?: string;
     };
     /**
      * TokenDetail
@@ -1062,23 +1062,23 @@ export interface components {
       /** Token Address */
       token_address: string;
       /** Token Name */
-      token_name: string | null;
+      token_name?: string;
       /** Token Symbol */
-      token_symbol: string | null;
+      token_symbol?: string;
       /** Acronym */
       acronym: string;
       /** Analysis Timestamp */
       analysis_timestamp: string;
       /** First Buy Timestamp */
-      first_buy_timestamp: string | null;
+      first_buy_timestamp?: string;
       /** Wallets Found */
       wallets_found: number;
       /** Credits Used */
-      credits_used?: number | null;
+      credits_used?: number;
       /** Last Analysis Credits */
-      last_analysis_credits?: number | null;
+      last_analysis_credits?: number;
       /** Deleted At */
-      deleted_at?: string | null;
+      deleted_at?: string;
       /** Wallets */
       wallets: Record<string, never>[];
       /** Axiom Json */
@@ -1096,17 +1096,17 @@ export interface components {
     /** UpdateSettingsRequest */
     UpdateSettingsRequest: {
       /** Transactionlimit */
-      transactionLimit?: number | null;
+      transactionLimit?: number;
       /** Minusdfilter */
-      minUsdFilter?: number | null;
+      minUsdFilter?: number;
       /** Walletcount */
-      walletCount?: number | null;
+      walletCount?: number;
       /** Apiratedelay */
-      apiRateDelay?: number | null;
+      apiRateDelay?: number;
       /** Maxcreditsperanalysis */
-      maxCreditsPerAnalysis?: number | null;
+      maxCreditsPerAnalysis?: number;
       /** Maxretries */
-      maxRetries?: number | null;
+      maxRetries?: number;
     };
     /** ValidationError */
     ValidationError: {
