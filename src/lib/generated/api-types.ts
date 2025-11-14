@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: 3cba10cc7853a674af23d4dc0f49f87f51871838
+ * Backend Commit: 2a4f326df279829e6118562770ed280b39a7a3c2
  * DO NOT EDIT - This file is auto-generated
  */
 
@@ -837,7 +837,7 @@ export interface components {
       /** Credits Used */
       credits_used: number;
       /** Wallets */
-      wallets: Record<string, never>[];
+      wallets: components['schemas']['Wallet'][];
     };
     /**
      * AnalysisSettings
@@ -1086,7 +1086,7 @@ export interface components {
       /** Deleted At */
       deleted_at?: string | null;
       /** Wallets */
-      wallets: Record<string, never>[];
+      wallets: components['schemas']['Wallet'][];
       /** Axiom Json */
       axiom_json: unknown[];
     };
@@ -1122,6 +1122,23 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+    };
+    /** Wallet */
+    Wallet: {
+      /** Id */
+      id: number;
+      /** Wallet Address */
+      wallet_address: string;
+      /** First Buy Timestamp */
+      first_buy_timestamp: string;
+      /** Total Usd */
+      total_usd: number | null;
+      /** Transaction Count */
+      transaction_count: number | null;
+      /** Average Buy Usd */
+      average_buy_usd: number | null;
+      /** Wallet Balance Usd */
+      wallet_balance_usd: number | null;
     };
     /** WalletTag */
     WalletTag: {
