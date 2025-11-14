@@ -246,7 +246,8 @@ function compareTypes(): boolean {
       .replace(
         /\{\s+\[key: string\]: unknown;\s+\}/g,
         '{ [key: string]: unknown }'
-      ); // normalize multi-line type objects
+      ) // normalize multi-line type objects
+      .replace(/"/g, "'"); // normalize all double quotes to single quotes (safe in type definitions)
 
   const existingTypes = normalize(readFileSync(FRONTEND_TYPES_PATH, 'utf-8'));
   const newTypes = normalize(readFileSync(TEMP_TYPES_PATH, 'utf-8'));
