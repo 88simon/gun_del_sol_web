@@ -811,6 +811,28 @@ export interface components {
       /** Token Id */
       token_id: number;
     };
+    /** AnalysisHistory */
+    AnalysisHistory: {
+      /** Token Id */
+      token_id: number;
+      /** Total Runs */
+      total_runs: number;
+      /** Runs */
+      runs: components['schemas']['AnalysisRun'][];
+    };
+    /** AnalysisRun */
+    AnalysisRun: {
+      /** Id */
+      id: number;
+      /** Analysis Timestamp */
+      analysis_timestamp: string;
+      /** Wallets Found */
+      wallets_found: number;
+      /** Credits Used */
+      credits_used: number;
+      /** Wallets */
+      wallets: Record<string, never>[];
+    };
     /**
      * AnalysisSettings
      * @description API settings for token analysis
@@ -883,6 +905,18 @@ export interface components {
       /** Addresses */
       addresses: string[];
     };
+    /** CodexResponse */
+    CodexResponse: {
+      /** Wallets */
+      wallets: components['schemas']['CodexWallet'][];
+    };
+    /** CodexWallet */
+    CodexWallet: {
+      /** Wallet Address */
+      wallet_address: string;
+      /** Tags */
+      tags: components['schemas']['WalletTag'][];
+    };
     /** CreateWebhookRequest */
     CreateWebhookRequest: {
       /** Token Id */
@@ -915,10 +949,62 @@ export interface components {
       /** Addresses */
       addresses: components['schemas']['ImportAddressEntry'][];
     };
+    /**
+     * MessageResponse
+     * @description Simple message response
+     */
+    MessageResponse: {
+      /** Message */
+      message: string;
+    };
+    /** MultiTokenWallet */
+    MultiTokenWallet: {
+      /** Wallet Address */
+      wallet_address: string;
+      /** Token Count */
+      token_count: number;
+      /** Token Names */
+      token_names: string[];
+      /** Token Addresses */
+      token_addresses: string[];
+      /** Token Ids */
+      token_ids: number[];
+      /** Wallet Balance Usd */
+      wallet_balance_usd: number | null;
+    };
+    /** MultiTokenWalletsResponse */
+    MultiTokenWalletsResponse: {
+      /** Total */
+      total: number;
+      /** Wallets */
+      wallets: components['schemas']['MultiTokenWallet'][];
+    };
     /** RefreshBalancesRequest */
     RefreshBalancesRequest: {
       /** Wallet Addresses */
       wallet_addresses: string[];
+    };
+    /** RefreshBalancesResponse */
+    RefreshBalancesResponse: {
+      /** Message */
+      message: string;
+      /** Results */
+      results: components['schemas']['RefreshBalancesResult'][];
+      /** Total Wallets */
+      total_wallets: number;
+      /** Successful */
+      successful: number;
+      /** Api Credits Used */
+      api_credits_used: number;
+    };
+    /** RefreshBalancesResult */
+    RefreshBalancesResult: {
+      /** Wallet Address */
+      wallet_address: string;
+      /** Balance Usd */
+      balance_usd: number | null;
+      /** Success */
+      success: boolean;
     };
     /** RegisterAddressRequest */
     RegisterAddressRequest: {
@@ -933,6 +1019,79 @@ export interface components {
     RemoveTagRequest: {
       /** Tag */
       tag: string;
+    };
+    /** TagsResponse */
+    TagsResponse: {
+      /** Tags */
+      tags: string[];
+    };
+    /** Token */
+    Token: {
+      /** Id */
+      id: number;
+      /** Token Address */
+      token_address: string;
+      /** Token Name */
+      token_name: string | null;
+      /** Token Symbol */
+      token_symbol: string | null;
+      /** Acronym */
+      acronym: string;
+      /** Analysis Timestamp */
+      analysis_timestamp: string;
+      /** First Buy Timestamp */
+      first_buy_timestamp: string | null;
+      /** Wallets Found */
+      wallets_found: number;
+      /** Credits Used */
+      credits_used?: number | null;
+      /** Last Analysis Credits */
+      last_analysis_credits?: number | null;
+      /** Wallet Addresses */
+      wallet_addresses?: string[] | null;
+      /** Deleted At */
+      deleted_at?: string | null;
+    };
+    /**
+     * TokenDetail
+     * @description Token with wallet details and axiom data
+     */
+    TokenDetail: {
+      /** Id */
+      id: number;
+      /** Token Address */
+      token_address: string;
+      /** Token Name */
+      token_name: string | null;
+      /** Token Symbol */
+      token_symbol: string | null;
+      /** Acronym */
+      acronym: string;
+      /** Analysis Timestamp */
+      analysis_timestamp: string;
+      /** First Buy Timestamp */
+      first_buy_timestamp: string | null;
+      /** Wallets Found */
+      wallets_found: number;
+      /** Credits Used */
+      credits_used?: number | null;
+      /** Last Analysis Credits */
+      last_analysis_credits?: number | null;
+      /** Deleted At */
+      deleted_at?: string | null;
+      /** Wallets */
+      wallets: Record<string, never>[];
+      /** Axiom Json */
+      axiom_json: unknown[];
+    };
+    /** TokensResponse */
+    TokensResponse: {
+      /** Total */
+      total: number;
+      /** Total Wallets */
+      total_wallets: number;
+      /** Tokens */
+      tokens: components['schemas']['Token'][];
     };
     /** UpdateSettingsRequest */
     UpdateSettingsRequest: {
@@ -957,6 +1116,18 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+    };
+    /** WalletTag */
+    WalletTag: {
+      /** Tag */
+      tag: string;
+      /** Is Kol */
+      is_kol: boolean;
+    };
+    /** WalletTagsResponse */
+    WalletTagsResponse: {
+      /** Tags */
+      tags: components['schemas']['WalletTag'][];
     };
   };
   responses: never;
@@ -1318,7 +1489,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['TokensResponse'];
         };
       };
     };
@@ -1338,7 +1509,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['TokensResponse'];
         };
       };
     };
@@ -1360,7 +1531,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['TokenDetail'];
         };
       };
       /** @description Validation Error */
@@ -1391,7 +1562,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['MessageResponse'];
         };
       };
       /** @description Validation Error */
@@ -1422,7 +1593,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['AnalysisHistory'];
         };
       };
       /** @description Validation Error */
@@ -1453,7 +1624,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['MessageResponse'];
         };
       };
       /** @description Validation Error */
@@ -1484,7 +1655,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['MessageResponse'];
         };
       };
       /** @description Validation Error */
@@ -1673,7 +1844,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['MultiTokenWalletsResponse'];
         };
       };
       /** @description Validation Error */
@@ -1706,7 +1877,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['RefreshBalancesResponse'];
         };
       };
       /** @description Validation Error */
@@ -1737,7 +1908,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['WalletTagsResponse'];
         };
       };
       /** @description Validation Error */
@@ -1772,7 +1943,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['MessageResponse'];
         };
       };
       /** @description Validation Error */
@@ -1807,7 +1978,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['MessageResponse'];
         };
       };
       /** @description Validation Error */
@@ -1836,7 +2007,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['TagsResponse'];
         };
       };
     };
@@ -1856,7 +2027,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['CodexResponse'];
         };
       };
     };
