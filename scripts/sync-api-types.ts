@@ -187,6 +187,35 @@ function generateTypeScriptTypes() {
       `npx openapi-typescript "${BACKEND_OPENAPI_PATH}" -o "${TEMP_TYPES_PATH}"`
     );
 
+    // Get backend commit SHA for version tracking
+    let backendCommitSha = '';
+    try {
+      backendCommitSha = executeCommand(
+        'git rev-parse HEAD',
+        BACKEND_REPO_PATH
+      );
+      log(`Backend commit: ${backendCommitSha.substring(0, 7)}`);
+    } catch (err: any) {
+      log('Warning: Could not get backend commit SHA');
+    }
+
+    // Add header comment with backend commit SHA
+    log('Adding version tracking header...');
+    const originalContent = readFileSync(TEMP_TYPES_PATH, 'utf-8');
+    const currentDate = new Date()
+      .toISOString()
+      .replace('T', ' ')
+      .split('.')[0];
+    const headerComment = `/**
+ * Auto-generated TypeScript types from Backend OpenAPI schema
+ * Backend Commit: ${backendCommitSha || 'unknown'}
+ * Generated: ${currentDate} UTC
+ * DO NOT EDIT - This file is auto-generated
+ */
+
+`;
+    writeFileSync(TEMP_TYPES_PATH, headerComment + originalContent);
+
     // Format the generated types with prettier to match project style
     log('Formatting generated types...');
     // Read the generated file and manually fix formatting
