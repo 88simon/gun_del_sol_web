@@ -198,10 +198,8 @@ function generateTypeScriptTypes() {
     // Write back the formatted content
     writeFileSync(TEMP_TYPES_PATH, content);
     // Run prettier to finalize formatting (properly quoted path)
-    // Note: Uses --no-editorconfig for consistency with CI (defaults to double quotes)
-    executeCommand(
-      `pnpm exec prettier --write --no-editorconfig "${TEMP_TYPES_PATH}"`
-    );
+    // Note: Respects project's .prettierrc configuration for consistency
+    executeCommand(`pnpm exec prettier --write "${TEMP_TYPES_PATH}"`);
 
     success('TypeScript types generated');
   } catch (err: any) {
