@@ -242,7 +242,8 @@ function compareTypes(): boolean {
   const normalize = (str: string) =>
     str
       .replace(/\r\n/g, '\n') // Windows CRLF -> LF
-      .replace(/Record<string, never>/g, '{ [key: string]: unknown }'); // openapi-typescript platform difference
+      .replace(/Record<string, never>/g, '{ [key: string]: unknown }') // openapi-typescript platform difference
+      .replace(/\{\s+\[key: string\]: unknown;\s+\}/g, '{ [key: string]: unknown }'); // normalize multi-line type objects
 
   const existingTypes = normalize(readFileSync(FRONTEND_TYPES_PATH, 'utf-8'));
   const newTypes = normalize(readFileSync(TEMP_TYPES_PATH, 'utf-8'));
