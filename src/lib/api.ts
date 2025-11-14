@@ -1,25 +1,36 @@
 /**
  * Gun Del Sol API Client
  * Fetches data from the FastAPI backend running on localhost:5003
+ *
+ * Uses auto-generated types from OpenAPI schema
  */
+
+import { components } from './generated/api-types';
 
 export const API_BASE_URL = 'http://localhost:5003';
 
-export interface Token {
-  id: number;
-  token_address: string;
-  token_name: string | null;
-  token_symbol: string | null;
-  acronym: string;
-  analysis_timestamp: string;
-  first_buy_timestamp: string | null;
-  wallets_found: number;
-  credits_used?: number;
-  last_analysis_credits?: number;
-  wallet_addresses?: string[];
-  deleted_at?: string | null;
-}
+// ============================================================================
+// Type Exports (from generated schemas)
+// ============================================================================
 
+export type Token = components['schemas']['Token'];
+export type TokenDetail = components['schemas']['TokenDetail'];
+export type TokensResponse = components['schemas']['TokensResponse'];
+export type WalletTag = components['schemas']['WalletTag'];
+export type MultiTokenWallet = components['schemas']['MultiTokenWallet'];
+export type MultiTokenWalletsResponse =
+  components['schemas']['MultiTokenWalletsResponse'];
+export type CodexWallet = components['schemas']['CodexWallet'];
+export type CodexResponse = components['schemas']['CodexResponse'];
+export type AnalysisRun = components['schemas']['AnalysisRun'];
+export type AnalysisHistory = components['schemas']['AnalysisHistory'];
+export type AnalysisSettings = components['schemas']['AnalysisSettings'];
+export type RefreshBalancesResult =
+  components['schemas']['RefreshBalancesResult'];
+export type RefreshBalancesResponse =
+  components['schemas']['RefreshBalancesResponse'];
+
+// Wallet type not in generated schema (returned as dict from DB)
 export interface Wallet {
   id: number;
   wallet_address: string;
@@ -30,58 +41,12 @@ export interface Wallet {
   wallet_balance_usd: number | null;
 }
 
-export interface WalletTag {
-  tag: string;
-  is_kol: boolean;
-}
+// Backwards compatibility - ApiSettings is now AnalysisSettings
+export type ApiSettings = AnalysisSettings;
 
-export interface TokenDetail extends Token {
-  wallets: Wallet[];
-  axiom_json: any[];
-}
-
-export interface AnalysisRun {
-  id: number;
-  analysis_timestamp: string;
-  wallets_found: number;
-  credits_used: number;
-  wallets: Wallet[];
-}
-
-export interface AnalysisHistory {
-  token_id: number;
-  total_runs: number;
-  runs: AnalysisRun[];
-}
-
-export interface TokensResponse {
-  total: number;
-  total_wallets: number;
-  tokens: Token[];
-}
-
-export interface MultiTokenWallet {
-  wallet_address: string;
-  token_count: number;
-  token_names: string[];
-  token_addresses: string[];
-  token_ids: number[];
-  wallet_balance_usd: number | null;
-}
-
-export interface MultiTokenWalletsResponse {
-  total: number;
-  wallets: MultiTokenWallet[];
-}
-
-export interface CodexWallet {
-  wallet_address: string;
-  tags: WalletTag[];
-}
-
-export interface CodexResponse {
-  wallets: CodexWallet[];
-}
+// ============================================================================
+// API Functions
+// ============================================================================
 
 /**
  * Fetch all analyzed tokens
@@ -321,23 +286,11 @@ export async function permanentDeleteToken(tokenId: number): Promise<void> {
 }
 
 /**
- * API Settings interface
- */
-export interface ApiSettings {
-  transactionLimit: number;
-  minUsdFilter: number;
-  walletCount: number;
-  apiRateDelay: number;
-  maxCreditsPerAnalysis: number;
-  maxRetries: number;
-}
-
-/**
  * Analyze a token with custom API settings
  */
 export async function analyzeToken(
   tokenAddress: string,
-  apiSettings: ApiSettings
+  apiSettings: AnalysisSettings
 ): Promise<any> {
   const res = await fetch(`${API_BASE_URL}/analyze/token`, {
     method: 'POST',
@@ -362,20 +315,6 @@ export async function analyzeToken(
 /**
  * Refresh wallet balances for multiple wallets
  */
-export interface RefreshBalancesResult {
-  wallet_address: string;
-  balance_usd: number | null;
-  success: boolean;
-}
-
-export interface RefreshBalancesResponse {
-  message: string;
-  results: RefreshBalancesResult[];
-  total_wallets: number;
-  successful: number;
-  api_credits_used: number;
-}
-
 export async function refreshWalletBalances(
   walletAddresses: string[]
 ): Promise<RefreshBalancesResponse> {

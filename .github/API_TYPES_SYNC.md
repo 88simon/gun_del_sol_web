@@ -41,12 +41,14 @@ When changes are pushed to the `main` branch of the **backend** repository:
 
 Every PR to the **frontend** repository runs a sync check:
 
-1. Checks out both backend and frontend repositories
-2. Generates fresh TypeScript types from the backend's OpenAPI schema
-3. Compares with the committed `src/lib/generated/api-types.ts`
-4. **Fails the CI** if types are out of sync
+1. Checks out frontend repository
+2. **Extracts backend commit SHA** from the header of committed `src/lib/generated/api-types.ts`
+3. Checks out the **specific backend commit** that generated those types (not latest main)
+4. Generates fresh TypeScript types from that backend commit's OpenAPI schema
+5. Compares with the committed `src/lib/generated/api-types.ts`
+6. **Fails the CI** if types are out of sync
 
-This ensures the frontend always uses current types from the backend.
+**Key Feature: Commit Pinning** - The CI compares against the exact backend version that generated the current types, preventing false failures when backend main advances.
 
 ### 3. Manual Sync (Development)
 
@@ -260,6 +262,53 @@ git push
   cd ../solscan_hotkey/backend
   pip install -r requirements-dev.txt
   ```
+
+## Commit Pinning System
+
+### How It Works
+
+The type sync system uses **commit pinning** to ensure consistency between frontend types and backend schema:
+
+1. **Backend generates types** - When types are generated, a header comment is added:
+
+   ```typescript
+   /**
+    * Auto-generated TypeScript types from Backend OpenAPI schema
+    * Backend Commit: 52a736334365de52d56204117a50725a0de5c7cb
+    * Generated: 2025-11-14 17:42:31 UTC
+    * DO NOT EDIT - This file is auto-generated
+    */
+   ```
+
+2. **Frontend CI extracts commit** - The frontend workflow extracts the backend commit SHA from this header
+
+3. **Checkout pinned commit** - Instead of checking out latest backend `main`, the workflow checks out the specific commit that generated the types
+
+4. **Compare against pinned version** - Types are regenerated from that pinned commit and compared
+
+### Benefits
+
+- **No false failures** - Backend changes won't break frontend PRs that are based on an earlier backend version
+- **Predictable CI** - CI results are deterministic and reproducible
+- **Gradual updates** - Frontend can update types at its own pace via `pnpm sync-types:update`
+
+### Example Scenario
+
+**Without commit pinning (old behavior):**
+
+1. Frontend PR created (types based on backend commit `abc123`)
+2. Backend merges new feature (now at commit `def456`)
+3. Frontend CI runs, checks out backend `main` (`def456`)
+4. CI fails because types don't match the new backend schema
+5. Frontend must resync types before merging
+
+**With commit pinning (new behavior):**
+
+1. Frontend PR created (types based on backend commit `abc123`, SHA embedded in header)
+2. Backend merges new feature (now at commit `def456`)
+3. Frontend CI runs, extracts `abc123` from types header, checks out that commit
+4. CI passes because comparison is against the correct backend version
+5. Frontend can merge without forced resync (though eventual sync is still recommended)
 
 ## Security Considerations
 

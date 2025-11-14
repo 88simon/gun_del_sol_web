@@ -5,12 +5,14 @@ on:
     branches: [main, develop]
     paths:
       - 'src/**/*.{ts,tsx,js,jsx}'
+      - 'scripts/**/*.{ts,tsx,js,jsx}'
       - '*.{ts,js,json}'
       - '.github/workflows/codeql-analysis.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'src/**/*.{ts,tsx,js,jsx}'
+      - 'scripts/**/*.{ts,tsx,js,jsx}'
       - '*.{ts,js,json}'
       - '.github/workflows/codeql-analysis.yml'
   schedule:

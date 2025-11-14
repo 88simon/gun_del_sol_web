@@ -97,11 +97,31 @@ jobs:
         with:
           path: frontend-repo
 
+      - name: Extract backend commit SHA from api-types
+        id: backend-commit
+        working-directory: frontend-repo
+        run: |
+          if [ -f "src/lib/generated/api-types.ts" ]; then
+            # Extract commit SHA from header comment (format: " * Backend Commit: <SHA>")
+            BACKEND_SHA=$(grep "Backend Commit:" src/lib/generated/api-types.ts | head -n 1 | sed 's/.*Backend Commit: \([a-f0-9]*\).*/\1/')
+            if [ -n "$BACKEND_SHA" ]; then
+              echo "Found backend commit: $BACKEND_SHA"
+              echo "sha=$BACKEND_SHA" >> $GITHUB_OUTPUT
+            else
+              echo "No backend commit SHA found in api-types.ts, using default branch"
+              echo "sha=" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "api-types.ts not found, using default branch"
+            echo "sha=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout backend repo
         uses: actions/checkout@v4
         with:
-          repository: 88simon/solscan_hotkey
+          repository: 88simon/gun_del_sol
           path: backend-repo
+          ref: ${{ steps.backend-commit.outputs.sha || 'main' }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

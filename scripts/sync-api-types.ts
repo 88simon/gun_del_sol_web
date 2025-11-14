@@ -187,6 +187,30 @@ function generateTypeScriptTypes() {
       `npx openapi-typescript "${BACKEND_OPENAPI_PATH}" -o "${TEMP_TYPES_PATH}"`
     );
 
+    // Get backend commit SHA for version tracking
+    let backendCommitSha = '';
+    try {
+      backendCommitSha = executeCommand(
+        'git rev-parse HEAD',
+        BACKEND_REPO_PATH
+      );
+      log(`Backend commit: ${backendCommitSha.substring(0, 7)}`);
+    } catch (err: any) {
+      log('Warning: Could not get backend commit SHA');
+    }
+
+    // Add header comment with backend commit SHA
+    log('Adding version tracking header...');
+    const originalContent = readFileSync(TEMP_TYPES_PATH, 'utf-8');
+    const headerComment = `/**
+ * Auto-generated TypeScript types from Backend OpenAPI schema
+ * Backend Commit: ${backendCommitSha || 'unknown'}
+ * DO NOT EDIT - This file is auto-generated
+ */
+
+`;
+    writeFileSync(TEMP_TYPES_PATH, headerComment + originalContent);
+
     // Format the generated types with prettier to match project style
     log('Formatting generated types...');
     // Read the generated file and manually fix formatting
@@ -195,14 +219,11 @@ function generateTypeScriptTypes() {
     content = content.replace(/^(    )+/gm, (match) =>
       '  '.repeat(match.length / 4)
     );
-    // Convert double quotes to single quotes for consistency
-    content = content.replace(/"/g, "'");
     // Write back the formatted content
     writeFileSync(TEMP_TYPES_PATH, content);
     // Run prettier to finalize formatting (properly quoted path)
-    executeCommand(
-      `pnpm exec prettier --write --no-editorconfig "${TEMP_TYPES_PATH}"`
-    );
+    // Note: Respects project's .prettierrc configuration for consistency
+    executeCommand(`pnpm exec prettier --write "${TEMP_TYPES_PATH}"`);
 
     success('TypeScript types generated');
   } catch (err: any) {
@@ -217,8 +238,38 @@ function compareTypes(): boolean {
     return false;
   }
 
-  const existingTypes = readFileSync(FRONTEND_TYPES_PATH, 'utf-8');
-  const newTypes = readFileSync(TEMP_TYPES_PATH, 'utf-8');
+  // Normalize line endings and type representations for comparison
+  const normalize = (str: string) =>
+    str
+      .replace(/\r\n/g, '\n') // Windows CRLF -> LF
+      .replace(/Record<string, never>/g, '{ [key: string]: unknown }') // openapi-typescript platform difference
+      .replace(
+        /\{\s+\[key: string\]: unknown;\s+\}/g,
+        '{ [key: string]: unknown }'
+      ) // normalize multi-line type objects
+      .replace(/"/g, "'"); // normalize all double quotes to single quotes (safe in type definitions)
+
+  const existingTypes = normalize(readFileSync(FRONTEND_TYPES_PATH, 'utf-8'));
+  const newTypes = normalize(readFileSync(TEMP_TYPES_PATH, 'utf-8'));
+
+  if (existingTypes !== newTypes) {
+    // Debug: show first difference
+    for (let i = 0; i < Math.min(existingTypes.length, newTypes.length); i++) {
+      if (existingTypes[i] !== newTypes[i]) {
+        const start = Math.max(0, i - 50);
+        const end = Math.min(existingTypes.length, i + 50);
+        log(`First diff at position ${i}:`);
+        log(`Existing: ${JSON.stringify(existingTypes.substring(start, end))}`);
+        log(`New: ${JSON.stringify(newTypes.substring(start, end))}`);
+        break;
+      }
+    }
+    if (existingTypes.length !== newTypes.length) {
+      log(
+        `Length mismatch: existing=${existingTypes.length}, new=${newTypes.length}`
+      );
+    }
+  }
 
   return existingTypes === newTypes;
 }
