@@ -238,8 +238,11 @@ function compareTypes(): boolean {
     return false;
   }
 
-  // Normalize line endings for comparison (handles Windows CRLF vs Unix LF)
-  const normalize = (str: string) => str.replace(/\r\n/g, '\n');
+  // Normalize line endings and type representations for comparison
+  const normalize = (str: string) =>
+    str
+      .replace(/\r\n/g, '\n') // Windows CRLF -> LF
+      .replace(/Record<string, never>/g, '{ [key: string]: unknown }'); // openapi-typescript platform difference
 
   const existingTypes = normalize(readFileSync(FRONTEND_TYPES_PATH, 'utf-8'));
   const newTypes = normalize(readFileSync(TEMP_TYPES_PATH, 'utf-8'));
