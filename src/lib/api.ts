@@ -16,6 +16,7 @@ export const API_BASE_URL = 'http://localhost:5003';
 export type Token = components['schemas']['Token'];
 export type TokenDetail = components['schemas']['TokenDetail'];
 export type TokensResponse = components['schemas']['TokensResponse'];
+export type Wallet = components['schemas']['Wallet'];
 export type WalletTag = components['schemas']['WalletTag'];
 export type MultiTokenWallet = components['schemas']['MultiTokenWallet'];
 export type MultiTokenWalletsResponse =
@@ -29,17 +30,6 @@ export type RefreshBalancesResult =
   components['schemas']['RefreshBalancesResult'];
 export type RefreshBalancesResponse =
   components['schemas']['RefreshBalancesResponse'];
-
-// Wallet type not in generated schema (returned as dict from DB)
-export interface Wallet {
-  id: number;
-  wallet_address: string;
-  first_buy_timestamp: string;
-  total_usd: number | null;
-  transaction_count: number | null;
-  average_buy_usd: number | null;
-  wallet_balance_usd: number | null;
-}
 
 // Backwards compatibility - ApiSettings is now AnalysisSettings
 export type ApiSettings = AnalysisSettings;
