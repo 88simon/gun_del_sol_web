@@ -26,6 +26,11 @@ export type CodexResponse = components['schemas']['CodexResponse'];
 export type AnalysisRun = components['schemas']['AnalysisRun'];
 export type AnalysisHistory = components['schemas']['AnalysisHistory'];
 export type AnalysisSettings = components['schemas']['AnalysisSettings'];
+export type AnalysisJob = components['schemas']['AnalysisJob'];
+export type AnalysisJobSummary = components['schemas']['AnalysisJobSummary'];
+export type AnalysisListResponse =
+  components['schemas']['AnalysisListResponse'];
+export type QueueTokenResponse = components['schemas']['QueueTokenResponse'];
 export type RefreshBalancesResult =
   components['schemas']['RefreshBalancesResult'];
 export type RefreshBalancesResponse =
@@ -281,7 +286,7 @@ export async function permanentDeleteToken(tokenId: number): Promise<void> {
 export async function analyzeToken(
   tokenAddress: string,
   apiSettings: AnalysisSettings
-): Promise<any> {
+): Promise<QueueTokenResponse> {
   const res = await fetch(`${API_BASE_URL}/analyze/token`, {
     method: 'POST',
     headers: {
