@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: 98cef4b4a2116a0c2265c5db3161eb25eb1d8781
+ * Backend Commit: 3cba10cc7853a674af23d4dc0f49f87f51871838
  * DO NOT EDIT - This file is auto-generated
  */
 
