@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: 2a4f326df279829e6118562770ed280b39a7a3c2
+ * Backend Commit: 449a31001d9d23bc56989e9dd2eb7a7dc5af84ff
  * DO NOT EDIT - This file is auto-generated
  */
 
@@ -826,6 +826,66 @@ export interface components {
       /** Runs */
       runs: components['schemas']['AnalysisRun'][];
     };
+    /**
+     * AnalysisJob
+     * @description Analysis job status
+     */
+    AnalysisJob: {
+      /** Job Id */
+      job_id: string;
+      /** Token Address */
+      token_address: string;
+      /** Status */
+      status: string;
+      /** Created At */
+      created_at: string;
+      /** Result */
+      result?: {
+        [key: string]: unknown;
+      } | null;
+      /** Error */
+      error?: string | null;
+      /** Axiom File */
+      axiom_file?: string | null;
+      /** Result File */
+      result_file?: string | null;
+    };
+    /**
+     * AnalysisJobSummary
+     * @description Summary info for analysis job in list view
+     */
+    AnalysisJobSummary: {
+      /** Job Id */
+      job_id: string;
+      /** Status */
+      status: string;
+      /** Token Address */
+      token_address: string;
+      /** Token Name */
+      token_name?: string | null;
+      /** Token Symbol */
+      token_symbol?: string | null;
+      /** Acronym */
+      acronym?: string | null;
+      /** Wallets Found */
+      wallets_found?: number | null;
+      /** Timestamp */
+      timestamp?: string | null;
+      /** Credits Used */
+      credits_used?: number | null;
+      /** Results Url */
+      results_url: string;
+    };
+    /**
+     * AnalysisListResponse
+     * @description Response for listing analysis jobs
+     */
+    AnalysisListResponse: {
+      /** Total */
+      total: number;
+      /** Jobs */
+      jobs: components['schemas']['AnalysisJobSummary'][];
+    };
     /** AnalysisRun */
     AnalysisRun: {
       /** Id */
@@ -984,6 +1044,24 @@ export interface components {
       total: number;
       /** Wallets */
       wallets: components['schemas']['MultiTokenWallet'][];
+    };
+    /**
+     * QueueTokenResponse
+     * @description Response when queuing a token for analysis
+     */
+    QueueTokenResponse: {
+      /** Status */
+      status: string;
+      /** Job Id */
+      job_id: string;
+      /** Token Address */
+      token_address: string;
+      /** Api Settings */
+      api_settings: {
+        [key: string]: unknown;
+      };
+      /** Results Url */
+      results_url: string;
     };
     /** RefreshBalancesRequest */
     RefreshBalancesRequest: {
@@ -1711,7 +1789,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['QueueTokenResponse'];
         };
       };
       /** @description Validation Error */
@@ -1742,7 +1820,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['AnalysisJob'];
         };
       };
       /** @description Validation Error */
@@ -1774,7 +1852,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['AnalysisListResponse'];
         };
       };
       /** @description Validation Error */
