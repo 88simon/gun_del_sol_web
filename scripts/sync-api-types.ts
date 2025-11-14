@@ -244,6 +244,23 @@ function compareTypes(): boolean {
   const existingTypes = normalize(readFileSync(FRONTEND_TYPES_PATH, 'utf-8'));
   const newTypes = normalize(readFileSync(TEMP_TYPES_PATH, 'utf-8'));
 
+  if (existingTypes !== newTypes) {
+    // Debug: show first difference
+    for (let i = 0; i < Math.min(existingTypes.length, newTypes.length); i++) {
+      if (existingTypes[i] !== newTypes[i]) {
+        const start = Math.max(0, i - 50);
+        const end = Math.min(existingTypes.length, i + 50);
+        log(`First diff at position ${i}:`);
+        log(`Existing: ${JSON.stringify(existingTypes.substring(start, end))}`);
+        log(`New: ${JSON.stringify(newTypes.substring(start, end))}`);
+        break;
+      }
+    }
+    if (existingTypes.length !== newTypes.length) {
+      log(`Length mismatch: existing=${existingTypes.length}, new=${newTypes.length}`);
+    }
+  }
+
   return existingTypes === newTypes;
 }
 
