@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: 3cba10cc7853a674af23d4dc0f49f87f51871838
+ * Backend Commit: 947df7e82840d4c46d42146fb53bb97fadd56d61
  * DO NOT EDIT - This file is auto-generated
  */
 
@@ -837,7 +837,9 @@ export interface components {
       /** Credits Used */
       credits_used: number;
       /** Wallets */
-      wallets: Record<string, never>[];
+      wallets: {
+        [key: string]: unknown;
+      }[];
     };
     /**
      * AnalysisSettings
@@ -1086,7 +1088,9 @@ export interface components {
       /** Deleted At */
       deleted_at?: string | null;
       /** Wallets */
-      wallets: Record<string, never>[];
+      wallets: {
+        [key: string]: unknown;
+      }[];
       /** Axiom Json */
       axiom_json: unknown[];
     };
