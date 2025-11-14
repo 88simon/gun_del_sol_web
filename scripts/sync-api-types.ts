@@ -195,11 +195,10 @@ function generateTypeScriptTypes() {
     content = content.replace(/^(    )+/gm, (match) =>
       '  '.repeat(match.length / 4)
     );
-    // Convert double quotes to single quotes for consistency
-    content = content.replace(/"/g, "'");
     // Write back the formatted content
     writeFileSync(TEMP_TYPES_PATH, content);
     // Run prettier to finalize formatting (properly quoted path)
+    // Note: Uses --no-editorconfig for consistency with CI (defaults to double quotes)
     executeCommand(
       `pnpm exec prettier --write --no-editorconfig "${TEMP_TYPES_PATH}"`
     );
