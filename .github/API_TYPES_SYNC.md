@@ -270,6 +270,7 @@ git push
 The type sync system uses **commit pinning** to ensure consistency between frontend types and backend schema:
 
 1. **Backend generates types** - When types are generated, a header comment is added:
+
    ```typescript
    /**
     * Auto-generated TypeScript types from Backend OpenAPI schema
@@ -294,6 +295,7 @@ The type sync system uses **commit pinning** to ensure consistency between front
 ### Example Scenario
 
 **Without commit pinning (old behavior):**
+
 1. Frontend PR created (types based on backend commit `abc123`)
 2. Backend merges new feature (now at commit `def456`)
 3. Frontend CI runs, checks out backend `main` (`def456`)
@@ -301,6 +303,7 @@ The type sync system uses **commit pinning** to ensure consistency between front
 5. Frontend must resync types before merging
 
 **With commit pinning (new behavior):**
+
 1. Frontend PR created (types based on backend commit `abc123`, SHA embedded in header)
 2. Backend merges new feature (now at commit `def456`)
 3. Frontend CI runs, extracts `abc123` from types header, checks out that commit

@@ -202,14 +202,9 @@ function generateTypeScriptTypes() {
     // Add header comment with backend commit SHA
     log('Adding version tracking header...');
     const originalContent = readFileSync(TEMP_TYPES_PATH, 'utf-8');
-    const currentDate = new Date()
-      .toISOString()
-      .replace('T', ' ')
-      .split('.')[0];
     const headerComment = `/**
  * Auto-generated TypeScript types from Backend OpenAPI schema
  * Backend Commit: ${backendCommitSha || 'unknown'}
- * Generated: ${currentDate} UTC
  * DO NOT EDIT - This file is auto-generated
  */
 
