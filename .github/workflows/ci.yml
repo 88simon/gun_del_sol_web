@@ -100,7 +100,7 @@ jobs:
       - name: Checkout backend repo
         uses: actions/checkout@v4
         with:
-          repository: 88simon/solscan_hotkey
+          repository: 88simon/gun_del_sol
           path: backend-repo
 
       - name: Setup pnpm
