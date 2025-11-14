@@ -217,8 +217,11 @@ function compareTypes(): boolean {
     return false;
   }
 
-  const existingTypes = readFileSync(FRONTEND_TYPES_PATH, 'utf-8');
-  const newTypes = readFileSync(TEMP_TYPES_PATH, 'utf-8');
+  // Normalize line endings for comparison (handles Windows CRLF vs Unix LF)
+  const normalize = (str: string) => str.replace(/\r\n/g, '\n');
+
+  const existingTypes = normalize(readFileSync(FRONTEND_TYPES_PATH, 'utf-8'));
+  const newTypes = normalize(readFileSync(TEMP_TYPES_PATH, 'utf-8'));
 
   return existingTypes === newTypes;
 }
