@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: 449a31001d9d23bc56989e9dd2eb7a7dc5af84ff
+ * Backend Commit: 4e77fd31d80cd0827938aae8e2d40ead57fe0f32
  * DO NOT EDIT - This file is auto-generated
  */
 
@@ -117,6 +117,57 @@ export interface paths {
      *         Updated settings
      */
     post: operations['update_api_settings_api_settings_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/metrics': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Metrics
+     * @description Get application metrics in Prometheus format
+     *
+     *     Returns metrics including:
+     *     - Application uptime
+     *     - Job queue depth by status
+     *     - Average processing and queue times
+     *     - Job success rate
+     *     - WebSocket connection stats
+     *     - HTTP request stats
+     */
+    get: operations['get_metrics_metrics_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/metrics/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Health
+     * @description Get health check status
+     *
+     *     Returns basic health information including queue depth
+     *     and success rate
+     */
+    get: operations['get_health_metrics_health_get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1368,6 +1419,46 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_metrics_metrics_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
+        };
+      };
+    };
+  };
+  get_health_metrics_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
     };
