@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: 4e77fd31d80cd0827938aae8e2d40ead57fe0f32
+ * Backend Commit: 34ff750a53ac978f48db90167a289ddcbbd85c59
  * DO NOT EDIT - This file is auto-generated
  */
 
@@ -454,6 +454,26 @@ export interface paths {
      * @description Permanently delete a token and all associated data
      */
     delete: operations['permanent_delete_token_api_tokens__token_id__permanent_delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/tokens/refresh-market-caps': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Refresh Market Caps
+     * @description Refresh current market cap for multiple tokens
+     */
+    post: operations['refresh_market_caps_api_tokens_refresh_market_caps_post'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -1141,6 +1161,35 @@ export interface components {
       /** Success */
       success: boolean;
     };
+    /** RefreshMarketCapResult */
+    RefreshMarketCapResult: {
+      /** Token Id */
+      token_id: number;
+      /** Market Cap Usd Current */
+      market_cap_usd_current: number | null;
+      /** Market Cap Updated At */
+      market_cap_updated_at: string | null;
+      /** Success */
+      success: boolean;
+    };
+    /** RefreshMarketCapsRequest */
+    RefreshMarketCapsRequest: {
+      /** Token Ids */
+      token_ids: number[];
+    };
+    /** RefreshMarketCapsResponse */
+    RefreshMarketCapsResponse: {
+      /** Message */
+      message: string;
+      /** Results */
+      results: components['schemas']['RefreshMarketCapResult'][];
+      /** Total Tokens */
+      total_tokens: number;
+      /** Successful */
+      successful: number;
+      /** Api Credits Used */
+      api_credits_used: number;
+    };
     /** RegisterAddressRequest */
     RegisterAddressRequest: {
       /** Address */
@@ -1186,6 +1235,12 @@ export interface components {
       wallet_addresses?: string[] | null;
       /** Deleted At */
       deleted_at?: string | null;
+      /** Market Cap Usd */
+      market_cap_usd?: number | null;
+      /** Market Cap Usd Current */
+      market_cap_usd_current?: number | null;
+      /** Market Cap Updated At */
+      market_cap_updated_at?: string | null;
     };
     /**
      * TokenDetail
@@ -1214,6 +1269,12 @@ export interface components {
       last_analysis_credits?: number | null;
       /** Deleted At */
       deleted_at?: string | null;
+      /** Market Cap Usd */
+      market_cap_usd?: number | null;
+      /** Market Cap Usd Current */
+      market_cap_usd_current?: number | null;
+      /** Market Cap Updated At */
+      market_cap_updated_at?: string | null;
       /** Wallets */
       wallets: components['schemas']['Wallet'][];
       /** Axiom Json */
@@ -1848,6 +1909,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['MessageResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  refresh_market_caps_api_tokens_refresh_market_caps_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefreshMarketCapsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RefreshMarketCapsResponse'];
         };
       };
       /** @description Validation Error */
