@@ -19,6 +19,11 @@
     "sync-types": "tsx scripts/sync-api-types.ts",
     "sync-types:check": "tsx scripts/sync-api-types.ts",
     "sync-types:update": "tsx scripts/sync-api-types.ts --update",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -105,6 +110,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.3.0",
+    "@playwright/test": "^1.56.1",
     "@types/node": "22.10.2",
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
