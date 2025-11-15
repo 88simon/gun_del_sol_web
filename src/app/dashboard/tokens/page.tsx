@@ -22,6 +22,12 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { WalletTagsProvider } from '@/contexts/WalletTagsContext';
 import { useAnalysisNotifications } from '@/hooks/useAnalysisNotifications';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 
 // Lazy load heavy components to defer loading until needed
 const Calendar = dynamic(
@@ -99,6 +105,10 @@ const RefreshCw = dynamic(
 );
 const Tags = dynamic(
   () => import('lucide-react').then((mod) => ({ default: mod.Tags })),
+  { ssr: false }
+);
+const Info = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.Info })),
   { ssr: false }
 );
 
@@ -528,6 +538,12 @@ export default function TokensPage() {
     }
   };
 
+  const handleRefreshAllBalances = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const allVisibleAddresses = walletsToDisplay.map((w) => w.wallet_address);
+    await handleRefreshBalances(allVisibleAddresses);
+  };
+
   // Pagination logic for multi-token wallets
   const walletsToDisplay = useMemo(() => {
     if (!multiWallets?.wallets) return [];
@@ -807,7 +823,47 @@ export default function TokensPage() {
                       Wallet Address
                     </th>
                     <th className='px-4 pb-3 text-right font-medium'>
-                      Balance (USD)
+                      <div className='flex items-center justify-end gap-1.5'>
+                        <span>Balance (USD)</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='h-5 w-5 p-0'
+                                onClick={handleRefreshAllBalances}
+                              >
+                                <RefreshCw className='h-3 w-3' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className='text-xs'>
+                                Refresh all visible wallet balances
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='h-5 w-5 p-0'
+                              >
+                                <Info className='h-3 w-3' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className='text-xs'>
+                                Refreshing a single wallet balance costs 1 API
+                                credit
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </th>
                     <th className='px-4 pb-3 text-center font-medium'>
                       Refresh Balance
