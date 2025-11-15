@@ -342,12 +342,6 @@ export async function refreshWalletBalances(
 export async function refreshMarketCaps(
   tokenIds: number[]
 ): Promise<RefreshMarketCapsResponse> {
-  console.log('[API] Refreshing market caps for tokens:', tokenIds);
-  console.log(
-    '[API] Request URL:',
-    `${API_BASE_URL}/api/tokens/refresh-market-caps`
-  );
-
   const res = await fetch(`${API_BASE_URL}/api/tokens/refresh-market-caps`, {
     method: 'POST',
     headers: {
@@ -359,8 +353,6 @@ export async function refreshMarketCaps(
     cache: 'no-store'
   });
 
-  console.log('[API] Response status:', res.status, res.statusText);
-
   if (!res.ok) {
     let errorMessage = 'Failed to refresh market caps';
     try {
@@ -368,14 +360,10 @@ export async function refreshMarketCaps(
       errorMessage = error.error || error.detail || errorMessage;
     } catch (e) {
       const text = await res.text();
-      console.error('[API] Error response body:', text);
       errorMessage = `HTTP ${res.status}: ${text || res.statusText}`;
     }
-    console.error('[API] Request failed:', errorMessage);
     throw new Error(errorMessage);
   }
 
-  const data = await res.json();
-  console.log('[API] Response data:', data);
-  return data;
+  return res.json();
 }

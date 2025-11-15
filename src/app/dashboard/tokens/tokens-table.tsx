@@ -501,21 +501,13 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   };
 
   const handleRefreshMarketCap = async (tokenId: number) => {
-    console.log('[DEBUG] Refreshing market cap for token:', tokenId);
     setRefreshingMarketCaps((prev) => new Set(prev).add(tokenId));
 
     try {
-      console.log('[DEBUG] Calling refreshMarketCaps API...');
       const response = await refreshMarketCaps([tokenId]);
-      console.log('[DEBUG] API response:', response);
 
       if (response.successful > 0) {
         const result = response.results[0];
-        console.log('[DEBUG] Market cap updated:', {
-          tokenId: result.token_id,
-          marketCap: result.market_cap_usd_current,
-          updatedAt: result.market_cap_updated_at
-        });
 
         // Immediately update local state for instant UI update
         setMarketCapUpdates((prev) => {
@@ -530,16 +522,11 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
         toast.success(
           `Market cap updated: $${result.market_cap_usd_current?.toLocaleString() || 'N/A'}`
         );
-        console.log(
-          '[DEBUG] Local state updated, calling router.refresh() in background...'
-        );
         router.refresh();
       } else {
-        console.error('[DEBUG] Refresh failed:', response);
         toast.error('Failed to refresh market cap - no data returned');
       }
     } catch (error) {
-      console.error('[DEBUG] Error refreshing market cap:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       toast.error(`Failed to refresh market cap: ${errorMessage}`);
@@ -549,7 +536,6 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
         newSet.delete(tokenId);
         return newSet;
       });
-      console.log('[DEBUG] Refresh complete for token:', tokenId);
     }
   };
 
