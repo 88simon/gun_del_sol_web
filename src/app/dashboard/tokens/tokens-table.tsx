@@ -40,6 +40,7 @@ import { useRouter } from 'next/navigation';
 import { TokenDetailsModal } from './token-details-modal';
 import { useCodex } from '@/contexts/codex-context';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const createColumns = (
   handleViewDetails: (id: number) => void,
@@ -242,6 +243,7 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [globalFilter, setGlobalFilter] = useState('');
   const [isCompactMode, setIsCompactMode] = useState(isCodexOpen);
+  const [selectedTokens, setSelectedTokens] = useState<Set<number>>(new Set());
 
   // Delay compact mode change to sync with Codex animation
   useEffect(() => {
@@ -253,6 +255,85 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
     );
     return () => clearTimeout(timer);
   }, [isCodexOpen]);
+
+  const handleTokenRowClick = (tokenId: number, event: React.MouseEvent) => {
+    // Don't select if clicking on a link, button, or interactive element
+    const target = event.target as HTMLElement;
+    if (
+      target.tagName === 'A' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('a') ||
+      target.closest('button')
+    ) {
+      return;
+    }
+
+    setSelectedTokens((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(tokenId)) {
+        newSet.delete(tokenId);
+      } else {
+        newSet.add(tokenId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTokens.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    if (!window.confirm(`Delete ${selectedTokens.size} selected token(s)?`)) {
+      return;
+    }
+
+    const tokenIds = Array.from(selectedTokens);
+    let successCount = 0;
+
+    for (const id of tokenIds) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/tokens/${id}`, {
+          method: 'DELETE',
+          cache: 'no-store'
+        });
+
+        if (response.ok) {
+          successCount++;
+          if (onDelete) {
+            onDelete(id);
+          }
+        }
+      } catch (error) {
+        // Continue with other deletions
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Deleted ${successCount} of ${tokenIds.length} token(s)`);
+      setSelectedTokens(new Set());
+    } else {
+      toast.error('Failed to delete tokens');
+    }
+  };
+
+  const handleBulkDownload = () => {
+    if (selectedTokens.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    const selectedTokensList = tokens.filter((token) =>
+      selectedTokens.has(token.id)
+    );
+
+    selectedTokensList.forEach((token) => {
+      downloadAxiomJson(token as any);
+    });
+
+    toast.success(`Downloading ${selectedTokensList.length} token(s)`);
+  };
 
   const handleViewDetails = async (id: number) => {
     try {
@@ -340,6 +421,42 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
           </div>
         </div>
 
+        {/* Selection Control Panel */}
+        {selectedTokens.size > 0 && (
+          <div className='bg-primary/10 border-primary/20 flex items-center justify-center gap-2 rounded-md border p-2'>
+            <span className='text-primary text-sm font-medium'>
+              {selectedTokens.size} token{selectedTokens.size !== 1 ? 's' : ''}{' '}
+              selected
+            </span>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => setSelectedTokens(new Set())}
+              className='h-7 text-xs'
+            >
+              Deselect All
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={handleBulkDownload}
+              className='h-7 text-xs'
+            >
+              <Download className='mr-1 h-3 w-3' />
+              Download Selected
+            </Button>
+            <Button
+              variant='destructive'
+              size='sm'
+              onClick={handleBulkDelete}
+              className='h-7 text-xs'
+            >
+              <Trash2 className='mr-1 h-3 w-3' />
+              Delete Selected
+            </Button>
+          </div>
+        )}
+
         <div className='overflow-hidden rounded-md border'>
           <div className='max-w-full overflow-x-auto'>
             <Table className='w-full'>
@@ -369,24 +486,65 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={cn(
-                            'transition-all duration-300',
-                            isCompactMode ? 'px-2 py-2' : 'px-3 py-3'
-                          )}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
+                  table.getRowModel().rows.map((row) => {
+                    const isSelected = selectedTokens.has(row.original.id);
+                    return (
+                      <motion.tr
+                        key={row.id}
+                        className={cn(
+                          'cursor-pointer border-b',
+                          isSelected ? 'bg-primary/20' : ''
+                        )}
+                        data-testid='token-row'
+                        onClick={(e) =>
+                          handleTokenRowClick(row.original.id, e as any)
+                        }
+                        initial={false}
+                        animate={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.2)'
+                            : 'transparent',
+                          boxShadow: isSelected
+                            ? 'inset 0 0 0 2px rgba(var(--primary-rgb, 59 130 246) / 0.3), 0 0 10px rgba(var(--primary-rgb, 59 130 246) / 0.2)'
+                            : 'none'
+                        }}
+                        whileHover={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.25)'
+                            : 'rgba(var(--muted-rgb, 240 240 240) / 0.5)',
+                          boxShadow: isSelected
+                            ? 'inset 0 0 0 2px rgba(var(--primary-rgb, 59 130 246) / 0.4), 0 0 15px rgba(var(--primary-rgb, 59 130 246) / 0.3)'
+                            : '0 1px 3px rgba(0, 0, 0, 0.05)'
+                        }}
+                        whileTap={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.3)'
+                            : 'rgba(var(--muted-rgb, 240 240 240) / 0.7)'
+                        }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 500,
+                          damping: 30,
+                          mass: 0.5
+                        }}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              'transition-all duration-300',
+                              isCompactMode ? 'px-2 py-2' : 'px-3 py-3'
+                            )}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </motion.tr>
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell
