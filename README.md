@@ -26,9 +26,15 @@ This is the frontend web interface for Gun Del Sol, built with:
 ## Features
 
 - **Token Analysis Dashboard**: View and analyze Solana token data
+- **Market Cap Tracking**: Dual market cap display (original at analysis time + current refreshed value)
+  - Per-row refresh icons for individual token updates
+  - Bulk refresh for all visible or selected tokens
+  - Instant UI updates without page reload
+  - Timestamps showing when market cap was last refreshed
 - **Wallet Tracking**: Monitor early buyer wallets and their transactions
 - **Historical Analysis**: View past token analysis runs with detailed wallet breakdowns
-- **Real-time Updates**: Live data from the Flask backend API
+- **Real-time Updates**: Live data from the FastAPI backend API
+- **Trash Management**: Soft-delete tokens with restore/permanent delete options
 
 ## Getting Started
 
@@ -159,6 +165,13 @@ pnpm start
 - **Docker build fails:** Ensure `output: 'standalone'` is set in `next.config.ts`
 - **CI checks failing:** Run `run_ci_checks.bat` or `run_ci_checks.sh` locally to identify issues
 - **Backend connection issues:** Verify backend is running on port 5003 and accessible
+- **"Cannot find module 'jest-worker/processChild.js'" error:** This indicates Next.js build cache corruption. Fix with:
+  ```bash
+  rm -rf node_modules .next
+  pnpm install
+  ```
+- **Market cap not refreshing:** Check browser console for API errors; verify backend is running and responsive
+- **UI not updating after bulk operations:** This should auto-refresh; if not, manually refresh the page
 
 ## License
 

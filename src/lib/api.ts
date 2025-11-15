@@ -35,6 +35,10 @@ export type RefreshBalancesResult =
   components['schemas']['RefreshBalancesResult'];
 export type RefreshBalancesResponse =
   components['schemas']['RefreshBalancesResponse'];
+export type RefreshMarketCapResult =
+  components['schemas']['RefreshMarketCapResult'];
+export type RefreshMarketCapsResponse =
+  components['schemas']['RefreshMarketCapsResponse'];
 
 // Backwards compatibility - ApiSettings is now AnalysisSettings
 export type ApiSettings = AnalysisSettings;
@@ -327,6 +331,38 @@ export async function refreshWalletBalances(
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || 'Failed to refresh balances');
+  }
+
+  return res.json();
+}
+
+/**
+ * Refresh market caps for multiple tokens
+ */
+export async function refreshMarketCaps(
+  tokenIds: number[]
+): Promise<RefreshMarketCapsResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/tokens/refresh-market-caps`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      token_ids: tokenIds
+    }),
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    let errorMessage = 'Failed to refresh market caps';
+    try {
+      const error = await res.json();
+      errorMessage = error.error || error.detail || errorMessage;
+    } catch (e) {
+      const text = await res.text();
+      errorMessage = `HTTP ${res.status}: ${text || res.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return res.json();

@@ -97,6 +97,10 @@ const RefreshCw = dynamic(
   () => import('lucide-react').then((mod) => ({ default: mod.RefreshCw })),
   { ssr: false }
 );
+const Tags = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.Tags })),
+  { ssr: false }
+);
 
 // Lazy load framer-motion only when wallet rows are visible
 const MotionTr = dynamic(
@@ -106,6 +110,145 @@ const MotionTr = dynamic(
     loading: () => <tr className='border-b opacity-50'></tr>
   }
 );
+
+// Bulk Tags Popover Component
+function BulkTagsPopover({
+  selectedWallets,
+  onTagsApplied
+}: {
+  selectedWallets: string[];
+  onTagsApplied: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [action, setAction] = useState<'add' | 'remove'>('add');
+
+  const toggleTag = (tag: string) => {
+    const newSet = new Set(selectedTags);
+    if (newSet.has(tag)) {
+      newSet.delete(tag);
+    } else {
+      newSet.add(tag);
+    }
+    setSelectedTags(newSet);
+  };
+
+  const applyTags = async () => {
+    if (selectedTags.size === 0) {
+      toast.error('Please select at least one tag');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { addWalletTag, removeWalletTag } = await import('@/lib/api');
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const walletAddress of selectedWallets) {
+        for (const tag of Array.from(selectedTags)) {
+          try {
+            if (action === 'add') {
+              await addWalletTag(walletAddress, tag, false);
+            } else {
+              await removeWalletTag(walletAddress, tag);
+            }
+            successCount++;
+          } catch (error) {
+            failCount++;
+            // Silent failure - will report count at the end
+          }
+        }
+      }
+
+      // Trigger refresh events for all wallets
+      selectedWallets.forEach((walletAddress) => {
+        window.dispatchEvent(
+          new CustomEvent('walletTagsChanged', { detail: { walletAddress } })
+        );
+      });
+
+      if (failCount === 0) {
+        toast.success(
+          `${action === 'add' ? 'Added' : 'Removed'} ${selectedTags.size} tag(s) ${action === 'add' ? 'to' : 'from'} ${selectedWallets.length} wallet(s)`
+        );
+      } else {
+        toast.warning(
+          `Completed with ${successCount} success(es) and ${failCount} failure(s)`
+        );
+      }
+
+      onTagsApplied();
+      setSelectedTags(new Set());
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to apply tags');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className='space-y-4'>
+      <div>
+        <h4 className='mb-3 text-sm font-semibold'>Batch Tag Management</h4>
+        <p className='text-muted-foreground mb-3 text-xs'>
+          {action === 'add' ? 'Add' : 'Remove'} tags{' '}
+          {action === 'add' ? 'to' : 'from'} {selectedWallets.length} selected
+          wallet(s)
+        </p>
+      </div>
+
+      {/* Action Toggle */}
+      <div className='flex gap-2'>
+        <Button
+          variant={action === 'add' ? 'default' : 'outline'}
+          size='sm'
+          onClick={() => setAction('add')}
+          className='h-8 flex-1 text-xs'
+        >
+          Add Tags
+        </Button>
+        <Button
+          variant={action === 'remove' ? 'default' : 'outline'}
+          size='sm'
+          onClick={() => setAction('remove')}
+          className='h-8 flex-1 text-xs'
+        >
+          Remove Tags
+        </Button>
+      </div>
+
+      {/* Tag Selection */}
+      <div className='space-y-2'>
+        {['Bot', 'Whale', 'Insider'].map((tag) => (
+          <label key={tag} className='flex cursor-pointer items-center gap-2'>
+            <input
+              type='checkbox'
+              checked={selectedTags.has(tag)}
+              onChange={() => toggleTag(tag)}
+              disabled={loading}
+              className='h-4 w-4 rounded border-gray-300'
+            />
+            <span className='text-sm'>{tag}</span>
+          </label>
+        ))}
+      </div>
+
+      {/* Apply Button */}
+      <Button
+        onClick={applyTags}
+        disabled={loading || selectedTags.size === 0}
+        className='w-full'
+        size='sm'
+      >
+        {loading
+          ? 'Applying...'
+          : `${action === 'add' ? 'Add' : 'Remove'} ${selectedTags.size > 0 ? `${selectedTags.size} Tag(s)` : 'Tags'}`}
+      </Button>
+    </div>
+  );
+}
 
 export default function TokensPage() {
   const [data, setData] = useState<TokensResponse | null>(null);
@@ -595,21 +738,58 @@ export default function TokensPage() {
               whale/insider wallets)
             </p>
 
-            {/* Top Selection Controls */}
+            {/* Top Selection Controls - Sticky Bar */}
             {selectedWallets.size > 0 && (
-              <div className='bg-primary/10 border-primary/20 mb-4 flex items-center justify-center gap-2 rounded-md border p-2'>
+              <div className='bg-primary/10 border-primary/20 sticky top-0 z-20 mb-4 flex flex-col items-center gap-2 rounded-md border p-3 shadow-md backdrop-blur-sm'>
                 <span className='text-primary text-sm font-medium'>
                   {selectedWallets.size} wallet
                   {selectedWallets.size !== 1 ? 's' : ''} selected
                 </span>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => setSelectedWallets(new Set())}
-                  className='h-7 text-xs'
-                >
-                  Deselect All
-                </Button>
+                <div className='flex items-center gap-2'>
+                  {/* Bulk Refresh Balance */}
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => handleRefreshBalances()}
+                    className='h-7 gap-1.5 text-xs'
+                    title={`Refresh ${selectedWallets.size} wallet balance(s) - ${selectedWallets.size} API credit(s)`}
+                  >
+                    <RefreshCw className='h-3 w-3' />
+                    Refresh ({selectedWallets.size})
+                  </Button>
+
+                  {/* Bulk Tags */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        className='h-7 gap-1.5 text-xs'
+                      >
+                        <Tags className='h-3 w-3' />
+                        Tags ({selectedWallets.size})
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className='w-56'>
+                      <BulkTagsPopover
+                        selectedWallets={Array.from(selectedWallets)}
+                        onTagsApplied={() => {
+                          toast.success('Tags applied to selected wallets');
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Deselect All */}
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setSelectedWallets(new Set())}
+                    className='h-7 text-xs'
+                  >
+                    Deselect All
+                  </Button>
+                </div>
               </div>
             )}
 

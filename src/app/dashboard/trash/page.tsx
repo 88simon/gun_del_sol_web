@@ -80,6 +80,37 @@ export default function TrashPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!data || data.tokens.length === 0) {
+      toast.error('No tokens to delete');
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Permanently delete ALL ${data.tokens.length} token(s) in trash?\n\nThis action CANNOT be undone. All associated data will be permanently removed.`
+      )
+    ) {
+      return;
+    }
+
+    setProcessingId(-1); // Use -1 to indicate processing all
+
+    try {
+      const deletePromises = data.tokens.map((token) =>
+        permanentDeleteToken(token.id)
+      );
+      await Promise.all(deletePromises);
+      toast.success(`Permanently deleted ${data.tokens.length} token(s)`);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete some tokens. Please try again.');
+      fetchData(); // Refresh to see which ones failed
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className='flex h-full items-center justify-center'>
@@ -119,10 +150,24 @@ export default function TrashPage() {
 
       {/* Stats Card */}
       <div className='bg-card rounded-lg border p-6'>
-        <div className='text-muted-foreground text-sm font-medium'>
-          Items in Trash
+        <div className='flex items-center justify-between'>
+          <div>
+            <div className='text-muted-foreground text-sm font-medium'>
+              Items in Trash
+            </div>
+            <div className='text-3xl font-bold'>{data.total}</div>
+          </div>
+          {data.total > 0 && (
+            <Button
+              variant='destructive'
+              onClick={handleDeleteAll}
+              disabled={processingId !== null}
+            >
+              <Trash2 className='mr-2 h-4 w-4' />
+              Delete All
+            </Button>
+          )}
         </div>
-        <div className='text-3xl font-bold'>{data.total}</div>
       </div>
 
       {/* Trash Table */}
@@ -134,7 +179,7 @@ export default function TrashPage() {
         </div>
       ) : (
         <div className='overflow-hidden rounded-md border'>
-          <div className='max-w-full overflow-x-auto'>
+          <div className='max-h-[calc(100vh-400px)] max-w-full overflow-auto'>
             <Table className='w-full'>
               <TableHeader>
                 <TableRow>
