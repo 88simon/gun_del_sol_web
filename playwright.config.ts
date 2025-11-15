@@ -45,8 +45,10 @@ export default defineConfig({
   // Run your local dev server before starting the tests
   webServer: [
     {
-      command:
-        'cd ../solscan_hotkey && .\\venv\\Scripts\\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port 5003',
+      // Backend server - use cross-platform command
+      command: process.env.CI
+        ? 'cd ../backend-repo/backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 5003'
+        : 'cd ../solscan_hotkey/backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 5003',
       url: 'http://localhost:5003/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
