@@ -14,10 +14,19 @@ import {
   formatTimestamp,
   downloadAxiomJson,
   getTokenById,
+  refreshMarketCaps,
   API_BASE_URL
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Trash2, Search, Copy, Info } from 'lucide-react';
+import {
+  Eye,
+  Download,
+  Trash2,
+  Search,
+  Copy,
+  Info,
+  RefreshCw
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -40,10 +49,24 @@ import { useRouter } from 'next/navigation';
 import { TokenDetailsModal } from './token-details-modal';
 import { useCodex } from '@/contexts/codex-context';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+// Lazy load framer-motion for selection animations
+const MotionTr = dynamic(
+  () => import('framer-motion').then((mod) => ({ default: mod.motion.tr })),
+  {
+    ssr: false,
+    loading: () => <tr className='border-b opacity-50'></tr>
+  }
+);
 
 const createColumns = (
   handleViewDetails: (id: number) => void,
   handleDelete: (id: number) => void,
+  handleRefreshMarketCap: (id: number) => Promise<void>,
+  handleRefreshAllMarketCaps: () => Promise<void>,
+  refreshingMarketCaps: Set<number>,
+  refreshingAll: boolean,
   isCompact: boolean = false
 ): ColumnDef<Token>[] => [
   {
@@ -64,6 +87,177 @@ const createColumns = (
             )}
           >
             {symbol}
+          </div>
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: 'market_cap_usd',
+    header: () => (
+      <div className='flex items-center gap-1'>
+        <span>Market Cap</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant='ghost'
+                size='sm'
+                className='h-5 w-5 p-0'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRefreshAllMarketCaps();
+                }}
+                disabled={refreshingAll}
+              >
+                <RefreshCw
+                  className={cn('h-1 w-1', refreshingAll && 'animate-spin')}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Refresh all visible market caps</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    ),
+    cell: ({ row }) => {
+      const marketCapOriginal = row.original.market_cap_usd;
+      const marketCapCurrent = row.original.market_cap_usd_current;
+      const marketCapUpdatedAt = row.original.market_cap_updated_at;
+      const isRefreshing = refreshingMarketCaps.has(row.original.id);
+
+      // Format market cap (e.g., $1.2M, $340K, $5.6B)
+      const formatMarketCap = (value: number): string => {
+        if (value >= 1_000_000_000) {
+          return `$${(value / 1_000_000_000).toFixed(2)}B`;
+        } else if (value >= 1_000_000) {
+          return `$${(value / 1_000_000).toFixed(2)}M`;
+        } else if (value >= 1_000) {
+          return `$${(value / 1_000).toFixed(1)}K`;
+        }
+        return `$${value.toFixed(2)}`;
+      };
+
+      // No market cap data at all
+      if (
+        (!marketCapOriginal || marketCapOriginal === 0) &&
+        (!marketCapCurrent || marketCapCurrent === 0)
+      ) {
+        return (
+          <div className='flex items-center gap-1'>
+            <div
+              className={cn(
+                'text-muted-foreground',
+                isCompact ? 'text-xs' : 'text-sm'
+              )}
+            >
+              -
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-5 w-5 p-0'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRefreshMarketCap(row.original.id);
+                    }}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw
+                      className={cn('h-1 w-1', isRefreshing && 'animate-spin')}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Refresh market cap</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        );
+      }
+
+      // Display both original and current market caps
+      return (
+        <div className='flex flex-col gap-0.5'>
+          {/* Original Market Cap from Analysis */}
+          {marketCapOriginal && marketCapOriginal > 0 && (
+            <div className='flex items-center gap-1'>
+              <div
+                className={cn(
+                  'text-muted-foreground',
+                  isCompact ? 'text-[9px]' : 'text-[10px]'
+                )}
+              >
+                At Analysis:
+              </div>
+              <div
+                className={cn(
+                  'font-medium tabular-nums',
+                  isCompact ? 'text-xs' : 'text-sm'
+                )}
+              >
+                {formatMarketCap(marketCapOriginal)}
+              </div>
+            </div>
+          )}
+
+          {/* Current/Refreshed Market Cap */}
+          {marketCapCurrent && marketCapCurrent > 0 && (
+            <div className='flex items-center gap-1'>
+              <div
+                className={cn(
+                  'text-muted-foreground',
+                  isCompact ? 'text-[9px]' : 'text-[10px]'
+                )}
+              >
+                Current:
+              </div>
+              <div
+                className={cn(
+                  'font-semibold text-green-600 tabular-nums',
+                  isCompact ? 'text-xs' : 'text-sm'
+                )}
+              >
+                {formatMarketCap(marketCapCurrent)}
+              </div>
+              {marketCapUpdatedAt && (
+                <div
+                  className={cn(
+                    'text-muted-foreground',
+                    isCompact ? 'text-[9px]' : 'text-[10px]'
+                  )}
+                >
+                  ({formatTimestamp(marketCapUpdatedAt)})
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Refresh Icon */}
+          <div className='flex items-center gap-1'>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-4 w-4 p-0'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRefreshMarketCap(row.original.id);
+                    }}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw
+                      className={cn('h-1 w-1', isRefreshing && 'animate-spin')}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Refresh market cap</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       );
@@ -242,6 +436,24 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [globalFilter, setGlobalFilter] = useState('');
   const [isCompactMode, setIsCompactMode] = useState(isCodexOpen);
+  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [refreshingMarketCaps, setRefreshingMarketCaps] = useState<Set<number>>(
+    new Set()
+  );
+  const [refreshingAll, setRefreshingAll] = useState(false);
+
+  // Local state for optimistic market cap updates
+  const [marketCapUpdates, setMarketCapUpdates] = useState<
+    Map<
+      number,
+      {
+        market_cap_usd_current: number | null;
+        market_cap_updated_at: string | null;
+      }
+    >
+  >(new Map());
 
   // Delay compact mode change to sync with Codex animation
   useEffect(() => {
@@ -288,14 +500,236 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
     }
   };
 
+  const handleRefreshMarketCap = async (tokenId: number) => {
+    setRefreshingMarketCaps((prev) => new Set(prev).add(tokenId));
+
+    try {
+      const response = await refreshMarketCaps([tokenId]);
+
+      if (response.successful > 0) {
+        const result = response.results[0];
+
+        // Immediately update local state for instant UI update
+        setMarketCapUpdates((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(tokenId, {
+            market_cap_usd_current: result.market_cap_usd_current,
+            market_cap_updated_at: result.market_cap_updated_at
+          });
+          return newMap;
+        });
+
+        toast.success(
+          `Market cap updated: $${result.market_cap_usd_current?.toLocaleString() || 'N/A'}`
+        );
+        router.refresh();
+      } else {
+        toast.error('Failed to refresh market cap - no data returned');
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to refresh market cap: ${errorMessage}`);
+    } finally {
+      setRefreshingMarketCaps((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(tokenId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRefreshAllMarketCaps = async () => {
+    const visibleTokenIds = table
+      .getRowModel()
+      .rows.map((row) => row.original.id);
+
+    if (visibleTokenIds.length === 0) {
+      toast.error('No tokens to refresh');
+      return;
+    }
+
+    setRefreshingAll(true);
+
+    try {
+      const response = await refreshMarketCaps(visibleTokenIds);
+
+      // Immediately update local state for all tokens
+      setMarketCapUpdates((prev) => {
+        const newMap = new Map(prev);
+        response.results.forEach((result) => {
+          newMap.set(result.token_id, {
+            market_cap_usd_current: result.market_cap_usd_current,
+            market_cap_updated_at: result.market_cap_updated_at
+          });
+        });
+        return newMap;
+      });
+
+      toast.success(
+        `Refreshed ${response.successful}/${response.total_tokens} market caps (${response.api_credits_used} credits)`
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to refresh market caps');
+    } finally {
+      setRefreshingAll(false);
+    }
+  };
+
+  const handleRefreshSelectedMarketCaps = async () => {
+    if (selectedTokenIds.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    const tokenIdsArray = Array.from(selectedTokenIds);
+    setRefreshingAll(true);
+
+    try {
+      const response = await refreshMarketCaps(tokenIdsArray);
+
+      // Immediately update local state for all selected tokens
+      setMarketCapUpdates((prev) => {
+        const newMap = new Map(prev);
+        response.results.forEach((result) => {
+          newMap.set(result.token_id, {
+            market_cap_usd_current: result.market_cap_usd_current,
+            market_cap_updated_at: result.market_cap_updated_at
+          });
+        });
+        return newMap;
+      });
+
+      toast.success(
+        `Refreshed ${response.successful}/${response.total_tokens} market caps (${response.api_credits_used} credits)`
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to refresh market caps');
+    } finally {
+      setRefreshingAll(false);
+    }
+  };
+
+  const handleRowClick = (tokenId: number, event: React.MouseEvent) => {
+    // Don't select if clicking on a link, button, or interactive element
+    const target = event.target as HTMLElement;
+    if (
+      target.tagName === 'A' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('a') ||
+      target.closest('button')
+    ) {
+      return;
+    }
+
+    setSelectedTokenIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(tokenId)) {
+        newSet.delete(tokenId);
+      } else {
+        newSet.add(tokenId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDownload = () => {
+    if (selectedTokenIds.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    const selectedTokens = tokens.filter((token) =>
+      selectedTokenIds.has(token.id)
+    );
+
+    selectedTokens.forEach((token) => {
+      downloadAxiomJson(token as any);
+    });
+
+    toast.success(`Downloaded ${selectedTokens.length} token(s)`);
+    setSelectedTokenIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTokenIds.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    const selectedTokens = tokens.filter((token) =>
+      selectedTokenIds.has(token.id)
+    );
+
+    const confirmed = window.confirm(
+      `Delete ${selectedTokens.length} token(s)?\n\n${selectedTokens.map((t) => t.token_name || 'Unknown').join(', ')}`
+    );
+
+    if (!confirmed) return;
+
+    // Delete all selected tokens
+    const deletePromises = Array.from(selectedTokenIds).map((id) =>
+      fetch(`${API_BASE_URL}/api/tokens/${id}`, {
+        method: 'DELETE',
+        cache: 'no-store'
+      })
+    );
+
+    try {
+      await Promise.all(deletePromises);
+      toast.success(`Deleted ${selectedTokenIds.size} token(s)`);
+
+      // Optimistically update UI
+      selectedTokenIds.forEach((id) => {
+        if (onDelete) {
+          onDelete(id);
+        }
+      });
+
+      setSelectedTokenIds(new Set());
+
+      // Refresh to sync with server
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to delete some tokens. Please try again.');
+      router.refresh();
+    }
+  };
+
+  // Merge tokens with local market cap updates for instant UI feedback
+  const tokensWithUpdates = useMemo(() => {
+    return tokens.map((token) => {
+      const update = marketCapUpdates.get(token.id);
+      if (update) {
+        return {
+          ...token,
+          market_cap_usd_current: update.market_cap_usd_current,
+          market_cap_updated_at: update.market_cap_updated_at
+        };
+      }
+      return token;
+    });
+  }, [tokens, marketCapUpdates]);
+
   const columns = useMemo(
-    () => createColumns(handleViewDetails, handleDelete, isCompactMode),
+    () =>
+      createColumns(
+        handleViewDetails,
+        handleDelete,
+        handleRefreshMarketCap,
+        handleRefreshAllMarketCaps,
+        refreshingMarketCaps,
+        refreshingAll,
+        isCompactMode
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isCompactMode]
+    [isCompactMode, refreshingMarketCaps, refreshingAll]
   );
 
   const table = useReactTable({
-    data: tokens,
+    data: tokensWithUpdates,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -309,7 +743,7 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
       globalFilter
     },
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnId, filterValue) => {
+    globalFilterFn: (row, _columnId, filterValue) => {
       const search = filterValue.toLowerCase();
       // Search in token address, token name, token symbol, and wallet addresses
       const tokenData = row.original;
@@ -340,17 +774,65 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
           </div>
         </div>
 
+        {/* Selection Control Panel */}
+        {selectedTokenIds.size > 0 && (
+          <div className='bg-primary/10 border-primary/20 sticky top-0 z-10 flex items-center justify-center gap-2 rounded-md border p-2 backdrop-blur-sm'>
+            <span className='text-primary text-sm font-medium'>
+              {selectedTokenIds.size} token
+              {selectedTokenIds.size !== 1 ? 's' : ''} selected
+            </span>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={handleRefreshSelectedMarketCaps}
+              className='h-7 gap-1 text-xs'
+              disabled={refreshingAll}
+            >
+              <RefreshCw
+                className={cn('h-3 w-3', refreshingAll && 'animate-spin')}
+              />
+              Refresh Market Caps
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={handleBulkDownload}
+              className='h-7 gap-1 text-xs'
+            >
+              <Download className='h-3 w-3' />
+              Download
+            </Button>
+            <Button
+              variant='destructive'
+              size='sm'
+              onClick={handleBulkDelete}
+              className='h-7 gap-1 text-xs'
+            >
+              <Trash2 className='h-3 w-3' />
+              Delete
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => setSelectedTokenIds(new Set())}
+              className='h-7 text-xs'
+            >
+              Deselect All
+            </Button>
+          </div>
+        )}
+
         <div className='overflow-hidden rounded-md border'>
-          <div className='max-w-full overflow-x-auto'>
+          <div className='max-h-[calc(100vh-300px)] max-w-full overflow-auto'>
             <Table className='w-full'>
-              <TableHeader>
+              <TableHeader className='bg-background sticky top-0 z-10 shadow-sm'>
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow key={headerGroup.id} className='border-b-2'>
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
                         className={cn(
-                          'whitespace-nowrap transition-all duration-300',
+                          'bg-background whitespace-nowrap transition-all duration-300',
                           isCompactMode
                             ? 'px-2 py-2 text-xs'
                             : 'px-3 py-3 text-sm'
@@ -369,24 +851,59 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={cn(
-                            'transition-all duration-300',
-                            isCompactMode ? 'px-2 py-2' : 'px-3 py-3'
-                          )}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
+                  table.getRowModel().rows.map((row) => {
+                    const isSelected = selectedTokenIds.has(row.original.id);
+                    return (
+                      <MotionTr
+                        key={row.id}
+                        className='cursor-pointer border-b'
+                        onClick={(e) => handleRowClick(row.original.id, e)}
+                        initial={false}
+                        animate={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.2)'
+                            : 'transparent',
+                          boxShadow: isSelected
+                            ? 'inset 0 0 0 2px rgba(var(--primary-rgb, 59 130 246) / 0.3), 0 0 10px rgba(var(--primary-rgb, 59 130 246) / 0.2)'
+                            : 'none'
+                        }}
+                        whileHover={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.25)'
+                            : 'rgba(var(--muted-rgb, 240 240 240) / 0.5)',
+                          boxShadow: isSelected
+                            ? 'inset 0 0 0 2px rgba(var(--primary-rgb, 59 130 246) / 0.4), 0 0 15px rgba(var(--primary-rgb, 59 130 246) / 0.3)'
+                            : '0 1px 3px rgba(0, 0, 0, 0.05)'
+                        }}
+                        whileTap={{
+                          backgroundColor: isSelected
+                            ? 'rgba(var(--primary-rgb, 59 130 246) / 0.3)'
+                            : 'rgba(var(--muted-rgb, 240 240 240) / 0.7)'
+                        }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 500,
+                          damping: 30,
+                          mass: 0.5
+                        }}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              'transition-all duration-300',
+                              isCompactMode ? 'px-2 py-2' : 'px-3 py-3'
+                            )}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </MotionTr>
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell
