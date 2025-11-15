@@ -14,10 +14,19 @@ import {
   formatTimestamp,
   downloadAxiomJson,
   getTokenById,
+  refreshMarketCaps,
   API_BASE_URL
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Trash2, Search, Copy, Info } from 'lucide-react';
+import {
+  Eye,
+  Download,
+  Trash2,
+  Search,
+  Copy,
+  Info,
+  RefreshCw
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -54,6 +63,10 @@ const MotionTr = dynamic(
 const createColumns = (
   handleViewDetails: (id: number) => void,
   handleDelete: (id: number) => void,
+  handleRefreshMarketCap: (id: number) => Promise<void>,
+  handleRefreshAllMarketCaps: () => Promise<void>,
+  refreshingMarketCaps: Set<number>,
+  refreshingAll: boolean,
   isCompact: boolean = false
 ): ColumnDef<Token>[] => [
   {
@@ -74,6 +87,177 @@ const createColumns = (
             )}
           >
             {symbol}
+          </div>
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: 'market_cap_usd',
+    header: () => (
+      <div className='flex items-center gap-1'>
+        <span>Market Cap</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant='ghost'
+                size='sm'
+                className='h-5 w-5 p-0'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRefreshAllMarketCaps();
+                }}
+                disabled={refreshingAll}
+              >
+                <RefreshCw
+                  className={cn('h-1 w-1', refreshingAll && 'animate-spin')}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Refresh all visible market caps</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    ),
+    cell: ({ row }) => {
+      const marketCapOriginal = row.original.market_cap_usd;
+      const marketCapCurrent = row.original.market_cap_usd_current;
+      const marketCapUpdatedAt = row.original.market_cap_updated_at;
+      const isRefreshing = refreshingMarketCaps.has(row.original.id);
+
+      // Format market cap (e.g., $1.2M, $340K, $5.6B)
+      const formatMarketCap = (value: number): string => {
+        if (value >= 1_000_000_000) {
+          return `$${(value / 1_000_000_000).toFixed(2)}B`;
+        } else if (value >= 1_000_000) {
+          return `$${(value / 1_000_000).toFixed(2)}M`;
+        } else if (value >= 1_000) {
+          return `$${(value / 1_000).toFixed(1)}K`;
+        }
+        return `$${value.toFixed(2)}`;
+      };
+
+      // No market cap data at all
+      if (
+        (!marketCapOriginal || marketCapOriginal === 0) &&
+        (!marketCapCurrent || marketCapCurrent === 0)
+      ) {
+        return (
+          <div className='flex items-center gap-1'>
+            <div
+              className={cn(
+                'text-muted-foreground',
+                isCompact ? 'text-xs' : 'text-sm'
+              )}
+            >
+              -
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-5 w-5 p-0'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRefreshMarketCap(row.original.id);
+                    }}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw
+                      className={cn('h-1 w-1', isRefreshing && 'animate-spin')}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Refresh market cap</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        );
+      }
+
+      // Display both original and current market caps
+      return (
+        <div className='flex flex-col gap-0.5'>
+          {/* Original Market Cap from Analysis */}
+          {marketCapOriginal && marketCapOriginal > 0 && (
+            <div className='flex items-center gap-1'>
+              <div
+                className={cn(
+                  'text-muted-foreground',
+                  isCompact ? 'text-[9px]' : 'text-[10px]'
+                )}
+              >
+                At Analysis:
+              </div>
+              <div
+                className={cn(
+                  'font-medium tabular-nums',
+                  isCompact ? 'text-xs' : 'text-sm'
+                )}
+              >
+                {formatMarketCap(marketCapOriginal)}
+              </div>
+            </div>
+          )}
+
+          {/* Current/Refreshed Market Cap */}
+          {marketCapCurrent && marketCapCurrent > 0 && (
+            <div className='flex items-center gap-1'>
+              <div
+                className={cn(
+                  'text-muted-foreground',
+                  isCompact ? 'text-[9px]' : 'text-[10px]'
+                )}
+              >
+                Current:
+              </div>
+              <div
+                className={cn(
+                  'font-semibold text-green-600 tabular-nums',
+                  isCompact ? 'text-xs' : 'text-sm'
+                )}
+              >
+                {formatMarketCap(marketCapCurrent)}
+              </div>
+              {marketCapUpdatedAt && (
+                <div
+                  className={cn(
+                    'text-muted-foreground',
+                    isCompact ? 'text-[9px]' : 'text-[10px]'
+                  )}
+                >
+                  ({formatTimestamp(marketCapUpdatedAt)})
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Refresh Icon */}
+          <div className='flex items-center gap-1'>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-4 w-4 p-0'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRefreshMarketCap(row.original.id);
+                    }}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw
+                      className={cn('h-1 w-1', isRefreshing && 'animate-spin')}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Refresh market cap</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       );
@@ -255,6 +439,21 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(
     new Set()
   );
+  const [refreshingMarketCaps, setRefreshingMarketCaps] = useState<Set<number>>(
+    new Set()
+  );
+  const [refreshingAll, setRefreshingAll] = useState(false);
+
+  // Local state for optimistic market cap updates
+  const [marketCapUpdates, setMarketCapUpdates] = useState<
+    Map<
+      number,
+      {
+        market_cap_usd_current: number | null;
+        market_cap_updated_at: string | null;
+      }
+    >
+  >(new Map());
 
   // Delay compact mode change to sync with Codex animation
   useEffect(() => {
@@ -298,6 +497,132 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
       toast.error('Failed to delete token. Please try again.');
       // On error, refresh to restore correct state
       router.refresh();
+    }
+  };
+
+  const handleRefreshMarketCap = async (tokenId: number) => {
+    console.log('[DEBUG] Refreshing market cap for token:', tokenId);
+    setRefreshingMarketCaps((prev) => new Set(prev).add(tokenId));
+
+    try {
+      console.log('[DEBUG] Calling refreshMarketCaps API...');
+      const response = await refreshMarketCaps([tokenId]);
+      console.log('[DEBUG] API response:', response);
+
+      if (response.successful > 0) {
+        const result = response.results[0];
+        console.log('[DEBUG] Market cap updated:', {
+          tokenId: result.token_id,
+          marketCap: result.market_cap_usd_current,
+          updatedAt: result.market_cap_updated_at
+        });
+
+        // Immediately update local state for instant UI update
+        setMarketCapUpdates((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(tokenId, {
+            market_cap_usd_current: result.market_cap_usd_current,
+            market_cap_updated_at: result.market_cap_updated_at
+          });
+          return newMap;
+        });
+
+        toast.success(
+          `Market cap updated: $${result.market_cap_usd_current?.toLocaleString() || 'N/A'}`
+        );
+        console.log(
+          '[DEBUG] Local state updated, calling router.refresh() in background...'
+        );
+        router.refresh();
+      } else {
+        console.error('[DEBUG] Refresh failed:', response);
+        toast.error('Failed to refresh market cap - no data returned');
+      }
+    } catch (error) {
+      console.error('[DEBUG] Error refreshing market cap:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to refresh market cap: ${errorMessage}`);
+    } finally {
+      setRefreshingMarketCaps((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(tokenId);
+        return newSet;
+      });
+      console.log('[DEBUG] Refresh complete for token:', tokenId);
+    }
+  };
+
+  const handleRefreshAllMarketCaps = async () => {
+    const visibleTokenIds = table
+      .getRowModel()
+      .rows.map((row) => row.original.id);
+
+    if (visibleTokenIds.length === 0) {
+      toast.error('No tokens to refresh');
+      return;
+    }
+
+    setRefreshingAll(true);
+
+    try {
+      const response = await refreshMarketCaps(visibleTokenIds);
+
+      // Immediately update local state for all tokens
+      setMarketCapUpdates((prev) => {
+        const newMap = new Map(prev);
+        response.results.forEach((result) => {
+          newMap.set(result.token_id, {
+            market_cap_usd_current: result.market_cap_usd_current,
+            market_cap_updated_at: result.market_cap_updated_at
+          });
+        });
+        return newMap;
+      });
+
+      toast.success(
+        `Refreshed ${response.successful}/${response.total_tokens} market caps (${response.api_credits_used} credits)`
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to refresh market caps');
+    } finally {
+      setRefreshingAll(false);
+    }
+  };
+
+  const handleRefreshSelectedMarketCaps = async () => {
+    if (selectedTokenIds.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    const tokenIdsArray = Array.from(selectedTokenIds);
+    setRefreshingAll(true);
+
+    try {
+      const response = await refreshMarketCaps(tokenIdsArray);
+
+      // Immediately update local state for all selected tokens
+      setMarketCapUpdates((prev) => {
+        const newMap = new Map(prev);
+        response.results.forEach((result) => {
+          newMap.set(result.token_id, {
+            market_cap_usd_current: result.market_cap_usd_current,
+            market_cap_updated_at: result.market_cap_updated_at
+          });
+        });
+        return newMap;
+      });
+
+      toast.success(
+        `Refreshed ${response.successful}/${response.total_tokens} market caps (${response.api_credits_used} credits)`
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to refresh market caps');
+    } finally {
+      setRefreshingAll(false);
     }
   };
 
@@ -378,20 +703,47 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
       });
 
       setSelectedTokenIds(new Set());
+
+      // Refresh to sync with server
+      router.refresh();
     } catch (error) {
       toast.error('Failed to delete some tokens. Please try again.');
       router.refresh();
     }
   };
 
+  // Merge tokens with local market cap updates for instant UI feedback
+  const tokensWithUpdates = useMemo(() => {
+    return tokens.map((token) => {
+      const update = marketCapUpdates.get(token.id);
+      if (update) {
+        return {
+          ...token,
+          market_cap_usd_current: update.market_cap_usd_current,
+          market_cap_updated_at: update.market_cap_updated_at
+        };
+      }
+      return token;
+    });
+  }, [tokens, marketCapUpdates]);
+
   const columns = useMemo(
-    () => createColumns(handleViewDetails, handleDelete, isCompactMode),
+    () =>
+      createColumns(
+        handleViewDetails,
+        handleDelete,
+        handleRefreshMarketCap,
+        handleRefreshAllMarketCaps,
+        refreshingMarketCaps,
+        refreshingAll,
+        isCompactMode
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isCompactMode]
+    [isCompactMode, refreshingMarketCaps, refreshingAll]
   );
 
   const table = useReactTable({
-    data: tokens,
+    data: tokensWithUpdates,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -438,11 +790,23 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
 
         {/* Selection Control Panel */}
         {selectedTokenIds.size > 0 && (
-          <div className='bg-primary/10 border-primary/20 flex items-center justify-center gap-2 rounded-md border p-2'>
+          <div className='bg-primary/10 border-primary/20 sticky top-0 z-10 flex items-center justify-center gap-2 rounded-md border p-2 backdrop-blur-sm'>
             <span className='text-primary text-sm font-medium'>
               {selectedTokenIds.size} token
               {selectedTokenIds.size !== 1 ? 's' : ''} selected
             </span>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={handleRefreshSelectedMarketCaps}
+              className='h-7 gap-1 text-xs'
+              disabled={refreshingAll}
+            >
+              <RefreshCw
+                className={cn('h-3 w-3', refreshingAll && 'animate-spin')}
+              />
+              Refresh Market Caps
+            </Button>
             <Button
               variant='outline'
               size='sm'
@@ -473,16 +837,16 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
         )}
 
         <div className='overflow-hidden rounded-md border'>
-          <div className='max-w-full overflow-x-auto'>
+          <div className='max-h-[calc(100vh-300px)] max-w-full overflow-auto'>
             <Table className='w-full'>
-              <TableHeader>
+              <TableHeader className='bg-background sticky top-0 z-10 shadow-sm'>
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow key={headerGroup.id} className='border-b-2'>
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
                         className={cn(
-                          'whitespace-nowrap transition-all duration-300',
+                          'bg-background whitespace-nowrap transition-all duration-300',
                           isCompactMode
                             ? 'px-2 py-2 text-xs'
                             : 'px-3 py-3 text-sm'

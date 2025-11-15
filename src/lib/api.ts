@@ -35,6 +35,10 @@ export type RefreshBalancesResult =
   components['schemas']['RefreshBalancesResult'];
 export type RefreshBalancesResponse =
   components['schemas']['RefreshBalancesResponse'];
+export type RefreshMarketCapResult =
+  components['schemas']['RefreshMarketCapResult'];
+export type RefreshMarketCapsResponse =
+  components['schemas']['RefreshMarketCapsResponse'];
 
 // Backwards compatibility - ApiSettings is now AnalysisSettings
 export type ApiSettings = AnalysisSettings;
@@ -330,4 +334,48 @@ export async function refreshWalletBalances(
   }
 
   return res.json();
+}
+
+/**
+ * Refresh market caps for multiple tokens
+ */
+export async function refreshMarketCaps(
+  tokenIds: number[]
+): Promise<RefreshMarketCapsResponse> {
+  console.log('[API] Refreshing market caps for tokens:', tokenIds);
+  console.log(
+    '[API] Request URL:',
+    `${API_BASE_URL}/api/tokens/refresh-market-caps`
+  );
+
+  const res = await fetch(`${API_BASE_URL}/api/tokens/refresh-market-caps`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      token_ids: tokenIds
+    }),
+    cache: 'no-store'
+  });
+
+  console.log('[API] Response status:', res.status, res.statusText);
+
+  if (!res.ok) {
+    let errorMessage = 'Failed to refresh market caps';
+    try {
+      const error = await res.json();
+      errorMessage = error.error || error.detail || errorMessage;
+    } catch (e) {
+      const text = await res.text();
+      console.error('[API] Error response body:', text);
+      errorMessage = `HTTP ${res.status}: ${text || res.statusText}`;
+    }
+    console.error('[API] Request failed:', errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  const data = await res.json();
+  console.log('[API] Response data:', data);
+  return data;
 }
