@@ -11,6 +11,7 @@ This test suite covers all major features of the Gun Del Sol frontend applicatio
 ### Feature Tests
 
 1. **Dashboard Tokens Panel** (`dashboard-tokens.spec.ts`)
+
    - Token list display
    - Token details modal
    - Token history view
@@ -18,12 +19,14 @@ This test suite covers all major features of the Gun Del Sol frontend applicatio
    - Soft delete operation
 
 2. **Multi-Token Wallets Panel** (`multi-token-wallets.spec.ts`)
+
    - Display wallets holding multiple tokens
    - Refresh balances functionality
    - Wallet sorting and filtering
    - Token count display
 
 3. **Watchlist Registration** (`watchlist.spec.ts`)
+
    - Register single address
    - Import multiple addresses
    - View watchlist
@@ -32,6 +35,7 @@ This test suite covers all major features of the Gun Del Sol frontend applicatio
    - Label management
 
 4. **Trash View Operations** (`trash-view.spec.ts`)
+
    - View trashed tokens
    - Restore token from trash
    - Permanently delete token
@@ -39,6 +43,7 @@ This test suite covers all major features of the Gun Del Sol frontend applicatio
    - Empty trash state
 
 5. **Codex Tagging System** (`codex-tagging.spec.ts`)
+
    - Add tag to wallet
    - Remove tag from wallet
    - Batch tag operations
@@ -87,11 +92,13 @@ Playwright will automatically start these servers via the webServer configuratio
 ## CI/CD Integration
 
 Tests run automatically in GitHub Actions CI on:
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop` branches
 - Manual workflow dispatch
 
 The CI workflow:
+
 1. Checks out both frontend and backend repos
 2. Sets up Python and Node.js environments
 3. Installs dependencies
@@ -202,21 +209,25 @@ When tests fail in CI:
 ### Common Issues
 
 **Backend not starting:**
+
 - Check if port 5003 is already in use
 - Verify Python dependencies are installed
 - Check backend logs in CI artifacts
 
 **Frontend not starting:**
+
 - Check if port 3000 is already in use
 - Verify pnpm dependencies are installed
 - Check `pnpm dev` runs successfully
 
 **Tests timing out:**
+
 - Increase timeout in specific tests
 - Check network conditions
 - Verify backend responses are fast enough
 
 **Flaky tests:**
+
 - Add explicit waits for asynchronous operations
 - Use `waitForLoadState('networkidle')`
 - Retry failed tests to identify patterns
