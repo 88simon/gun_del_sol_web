@@ -31,6 +31,11 @@ This is the frontend web interface for Gun Del Sol, built with:
   - Bulk refresh for all visible or selected tokens
   - Instant UI updates without page reload
   - Timestamps showing when market cap was last refreshed
+- **Wallet Balance Tracking**: Real-time wallet balance updates with accurate SOL/USD pricing
+  - Column header refresh icon for bulk balance updates
+  - Per-row refresh icons for individual wallet updates
+  - Info tooltips showing API credit costs
+  - Instant UI updates without page reload
 - **Wallet Tracking**: Monitor early buyer wallets and their transactions
 - **Historical Analysis**: View past token analysis runs with detailed wallet breakdowns
 - **Real-time Updates**: Live data from the FastAPI backend API
@@ -171,6 +176,8 @@ pnpm start
   pnpm install
   ```
 - **Market cap not refreshing:** Check browser console for API errors; verify backend is running and responsive
+- **Wallet balances showing incorrect values:** Backend now uses real-time SOL/USD pricing from CoinGecko; ensure backend is updated to latest version
+- **Balance refresh not working:** Check that backend `/wallets/refresh-balances` endpoint is accessible; verify Helius API key is valid
 - **UI not updating after bulk operations:** This should auto-refresh; if not, manually refresh the page
 
 ## License
