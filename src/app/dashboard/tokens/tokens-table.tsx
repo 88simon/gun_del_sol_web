@@ -40,7 +40,16 @@ import { useRouter } from 'next/navigation';
 import { TokenDetailsModal } from './token-details-modal';
 import { useCodex } from '@/contexts/codex-context';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+
+// Lazy load framer-motion for selection animations
+const MotionTr = dynamic(
+  () => import('framer-motion').then((mod) => ({ default: mod.motion.tr })),
+  {
+    ssr: false,
+    loading: () => <tr className='border-b opacity-50'></tr>
+  }
+);
 
 const createColumns = (
   handleViewDetails: (id: number) => void,
@@ -243,7 +252,9 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [globalFilter, setGlobalFilter] = useState('');
   const [isCompactMode, setIsCompactMode] = useState(isCodexOpen);
-  const [selectedTokens, setSelectedTokens] = useState<Set<number>>(new Set());
+  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(
+    new Set()
+  );
 
   // Delay compact mode change to sync with Codex animation
   useEffect(() => {
@@ -255,85 +266,6 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
     );
     return () => clearTimeout(timer);
   }, [isCodexOpen]);
-
-  const handleTokenRowClick = (tokenId: number, event: React.MouseEvent) => {
-    // Don't select if clicking on a link, button, or interactive element
-    const target = event.target as HTMLElement;
-    if (
-      target.tagName === 'A' ||
-      target.tagName === 'BUTTON' ||
-      target.closest('a') ||
-      target.closest('button')
-    ) {
-      return;
-    }
-
-    setSelectedTokens((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(tokenId)) {
-        newSet.delete(tokenId);
-      } else {
-        newSet.add(tokenId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedTokens.size === 0) {
-      toast.error('No tokens selected');
-      return;
-    }
-
-    if (!window.confirm(`Delete ${selectedTokens.size} selected token(s)?`)) {
-      return;
-    }
-
-    const tokenIds = Array.from(selectedTokens);
-    let successCount = 0;
-
-    for (const id of tokenIds) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/tokens/${id}`, {
-          method: 'DELETE',
-          cache: 'no-store'
-        });
-
-        if (response.ok) {
-          successCount++;
-          if (onDelete) {
-            onDelete(id);
-          }
-        }
-      } catch (error) {
-        // Continue with other deletions
-      }
-    }
-
-    if (successCount > 0) {
-      toast.success(`Deleted ${successCount} of ${tokenIds.length} token(s)`);
-      setSelectedTokens(new Set());
-    } else {
-      toast.error('Failed to delete tokens');
-    }
-  };
-
-  const handleBulkDownload = () => {
-    if (selectedTokens.size === 0) {
-      toast.error('No tokens selected');
-      return;
-    }
-
-    const selectedTokensList = tokens.filter((token) =>
-      selectedTokens.has(token.id)
-    );
-
-    selectedTokensList.forEach((token) => {
-      downloadAxiomJson(token as any);
-    });
-
-    toast.success(`Downloading ${selectedTokensList.length} token(s)`);
-  };
 
   const handleViewDetails = async (id: number) => {
     try {
@@ -369,6 +301,89 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
     }
   };
 
+  const handleRowClick = (tokenId: number, event: React.MouseEvent) => {
+    // Don't select if clicking on a link, button, or interactive element
+    const target = event.target as HTMLElement;
+    if (
+      target.tagName === 'A' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('a') ||
+      target.closest('button')
+    ) {
+      return;
+    }
+
+    setSelectedTokenIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(tokenId)) {
+        newSet.delete(tokenId);
+      } else {
+        newSet.add(tokenId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDownload = () => {
+    if (selectedTokenIds.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    const selectedTokens = tokens.filter((token) =>
+      selectedTokenIds.has(token.id)
+    );
+
+    selectedTokens.forEach((token) => {
+      downloadAxiomJson(token as any);
+    });
+
+    toast.success(`Downloaded ${selectedTokens.length} token(s)`);
+    setSelectedTokenIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTokenIds.size === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    const selectedTokens = tokens.filter((token) =>
+      selectedTokenIds.has(token.id)
+    );
+
+    const confirmed = window.confirm(
+      `Delete ${selectedTokens.length} token(s)?\n\n${selectedTokens.map((t) => t.token_name || 'Unknown').join(', ')}`
+    );
+
+    if (!confirmed) return;
+
+    // Delete all selected tokens
+    const deletePromises = Array.from(selectedTokenIds).map((id) =>
+      fetch(`${API_BASE_URL}/api/tokens/${id}`, {
+        method: 'DELETE',
+        cache: 'no-store'
+      })
+    );
+
+    try {
+      await Promise.all(deletePromises);
+      toast.success(`Deleted ${selectedTokenIds.size} token(s)`);
+
+      // Optimistically update UI
+      selectedTokenIds.forEach((id) => {
+        if (onDelete) {
+          onDelete(id);
+        }
+      });
+
+      setSelectedTokenIds(new Set());
+    } catch (error) {
+      toast.error('Failed to delete some tokens. Please try again.');
+      router.refresh();
+    }
+  };
+
   const columns = useMemo(
     () => createColumns(handleViewDetails, handleDelete, isCompactMode),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -390,7 +405,7 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
       globalFilter
     },
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnId, filterValue) => {
+    globalFilterFn: (row, _columnId, filterValue) => {
       const search = filterValue.toLowerCase();
       // Search in token address, token name, token symbol, and wallet addresses
       const tokenData = row.original;
@@ -422,37 +437,37 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
         </div>
 
         {/* Selection Control Panel */}
-        {selectedTokens.size > 0 && (
+        {selectedTokenIds.size > 0 && (
           <div className='bg-primary/10 border-primary/20 flex items-center justify-center gap-2 rounded-md border p-2'>
             <span className='text-primary text-sm font-medium'>
-              {selectedTokens.size} token{selectedTokens.size !== 1 ? 's' : ''}{' '}
-              selected
+              {selectedTokenIds.size} token
+              {selectedTokenIds.size !== 1 ? 's' : ''} selected
             </span>
             <Button
               variant='outline'
               size='sm'
-              onClick={() => setSelectedTokens(new Set())}
-              className='h-7 text-xs'
-            >
-              Deselect All
-            </Button>
-            <Button
-              variant='outline'
-              size='sm'
               onClick={handleBulkDownload}
-              className='h-7 text-xs'
+              className='h-7 gap-1 text-xs'
             >
-              <Download className='mr-1 h-3 w-3' />
-              Download Selected
+              <Download className='h-3 w-3' />
+              Download
             </Button>
             <Button
               variant='destructive'
               size='sm'
               onClick={handleBulkDelete}
+              className='h-7 gap-1 text-xs'
+            >
+              <Trash2 className='h-3 w-3' />
+              Delete
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => setSelectedTokenIds(new Set())}
               className='h-7 text-xs'
             >
-              <Trash2 className='mr-1 h-3 w-3' />
-              Delete Selected
+              Deselect All
             </Button>
           </div>
         )}
@@ -487,18 +502,12 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => {
-                    const isSelected = selectedTokens.has(row.original.id);
+                    const isSelected = selectedTokenIds.has(row.original.id);
                     return (
-                      <motion.tr
+                      <MotionTr
                         key={row.id}
-                        className={cn(
-                          'cursor-pointer border-b',
-                          isSelected ? 'bg-primary/20' : ''
-                        )}
-                        data-testid='token-row'
-                        onClick={(e) =>
-                          handleTokenRowClick(row.original.id, e as any)
-                        }
+                        className='cursor-pointer border-b'
+                        onClick={(e) => handleRowClick(row.original.id, e)}
                         initial={false}
                         animate={{
                           backgroundColor: isSelected
@@ -542,7 +551,7 @@ export function TokensTable({ tokens, onDelete }: TokensTableProps) {
                             )}
                           </TableCell>
                         ))}
-                      </motion.tr>
+                      </MotionTr>
                     );
                   })
                 ) : (
