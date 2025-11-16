@@ -12,8 +12,8 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { apiFixture } from './fixtures/api.fixture';
-import { SAMPLE_ADDRESSES, SAMPLE_TAGS, waitFor } from './helpers/test-data';
+import { apiFixture } from '../fixtures/api.fixture';
+import { SAMPLE_ADDRESSES, SAMPLE_TAGS, waitFor } from '../helpers/test-data';
 
 test.describe('Codex Tagging System', () => {
   test.beforeEach(async ({ page }) => {

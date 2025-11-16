@@ -11,8 +11,8 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { apiFixture } from './fixtures/api.fixture';
-import { SAMPLE_ADDRESSES, waitFor } from './helpers/test-data';
+import { apiFixture } from '../fixtures/api.fixture';
+import { SAMPLE_ADDRESSES, waitFor } from '../helpers/test-data';
 
 test.describe('Trash View Operations', () => {
   test.beforeEach(async ({ page }) => {

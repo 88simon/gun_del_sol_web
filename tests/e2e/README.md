@@ -9,6 +9,7 @@ This test suite covers all major features of the Gun Del Sol frontend applicatio
 ## Test Suites
 
 ### Smoke Tests (Fast - CI Default)
+
 - **Location**: `smoke.spec.ts`
 - **Runtime**: ~10 seconds
 - **Tests**: 3 basic validation tests
@@ -17,6 +18,7 @@ This test suite covers all major features of the Gun Del Sol frontend applicatio
 - **CI**: Runs automatically (non-blocking)
 
 ### Extended Tests (Comprehensive - Manual)
+
 - **Location**: `extended/*.spec.ts`
 - **Runtime**: ~5 minutes
 - **Tests**: 60+ comprehensive feature tests

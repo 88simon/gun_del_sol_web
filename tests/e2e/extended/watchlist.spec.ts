@@ -12,12 +12,12 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { apiFixture } from './fixtures/api.fixture';
+import { apiFixture } from '../fixtures/api.fixture';
 import {
   SAMPLE_ADDRESSES,
   SAMPLE_WATCHLIST_LABELS,
   waitFor
-} from './helpers/test-data';
+} from '../helpers/test-data';
 
 test.describe('Watchlist Registration', () => {
   test.beforeEach(async ({ page }) => {
