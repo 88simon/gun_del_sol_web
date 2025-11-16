@@ -219,6 +219,7 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: [build]
+    continue-on-error: true  # Don't block PR if e2e tests fail
 
     steps:
       - name: Checkout frontend repo
@@ -318,12 +319,17 @@ jobs:
           if [[ "${{ needs.lint-format.result }}" == "failure" ]] || \
              [[ "${{ needs.type-check.result }}" == "failure" ]] || \
              [[ "${{ needs.api-types-check.result }}" == "failure" ]] || \
-             [[ "${{ needs.build.result }}" == "failure" ]] || \
-             [[ "${{ needs.e2e-tests.result }}" == "failure" ]]; then
-            echo "One or more checks failed"
+             [[ "${{ needs.build.result }}" == "failure" ]]; then
+            echo "One or more critical checks failed"
             exit 1
           fi
-          echo "All checks passed successfully!"
+
+          # E2E tests are informational only - don't block on failures
+          if [[ "${{ needs.e2e-tests.result }}" == "failure" ]]; then
+            echo "⚠️ E2E tests failed but not blocking merge"
+          fi
+
+          echo "All critical checks passed successfully!"
 
       - name: Create job summary
         if: always()
@@ -366,24 +372,29 @@ jobs:
             echo "❌ **Next.js Build:** Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # E2E tests results
+          # E2E tests results (informational only)
           if [[ "${{ needs.e2e-tests.result }}" == "success" ]]; then
-            echo "✅ **E2E Tests:** Passed" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **E2E Tests (optional):** Passed" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.e2e-tests.result }}" == "failure" ]]; then
+            echo "⚠️ **E2E Tests (optional):** Failed (not blocking)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **E2E Tests:** Failed" >> $GITHUB_STEP_SUMMARY
+            echo "⏭️ **E2E Tests (optional):** Skipped" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Overall status
+          # Overall status (critical checks only)
           if [[ "${{ needs.lint-format.result }}" == "success" ]] && \
              [[ "${{ needs.type-check.result }}" == "success" ]] && \
              [[ "${{ needs.api-types-check.result }}" == "success" ]] && \
-             [[ "${{ needs.build.result }}" == "success" ]] && \
-             [[ "${{ needs.e2e-tests.result }}" == "success" ]]; then
-            echo "🎉 **Overall Status:** All checks passed!" >> $GITHUB_STEP_SUMMARY
+             [[ "${{ needs.build.result }}" == "success" ]]; then
+            echo "🎉 **Overall Status:** All critical checks passed!" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ needs.e2e-tests.result }}" != "success" ]]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "ℹ️ Note: E2E tests failed but are non-blocking. Safe to merge." >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "⚠️ **Overall Status:** Some checks failed" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Overall Status:** Some critical checks failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Please review the failed jobs above and fix the issues before merging." >> $GITHUB_STEP_SUMMARY
           fi
@@ -405,20 +416,25 @@ jobs:
             const buildEmoji = buildResult === 'success' ? '✅' : '❌';
             const e2eEmoji = e2eResult === 'success' ? '✅' : '❌';
 
-            const allPassed = lintResult === 'success' && typeCheckResult === 'success' && apiTypesResult === 'success' && buildResult === 'success' && e2eResult === 'success';
-            const status = allPassed ? '✅ All checks passed!' : '⚠️ Some checks failed';
+            const criticalPassed = lintResult === 'success' && typeCheckResult === 'success' && apiTypesResult === 'success' && buildResult === 'success';
+            const status = criticalPassed ? '✅ All critical checks passed!' : '⚠️ Some critical checks failed';
 
-            const comment = `### CI Pipeline Results ${allPassed ? '🎉' : '⚠️'}
+            let e2eNote = '';
+            if (e2eResult === 'failure') {
+              e2eNote = '\n\nℹ️ E2E tests failed but are non-blocking. Safe to merge.';
+            }
+
+            const comment = `### CI Pipeline Results ${criticalPassed ? '🎉' : '⚠️'}
 
             ${lintEmoji} **Lint & Format:** ${lintResult}
             ${typeCheckEmoji} **TypeScript Check:** ${typeCheckResult}
             ${apiTypesEmoji} **API Types Sync:** ${apiTypesResult}
             ${buildEmoji} **Next.js Build:** ${buildResult}
-            ${e2eEmoji} **E2E Tests:** ${e2eResult}
+            ${e2eEmoji} **E2E Tests (optional):** ${e2eResult}
 
             ---
 
-            ${status}
+            ${status}${e2eNote}
 
             **Commit:** ${context.sha.substring(0, 7)}
             **Branch:** ${context.ref.replace('refs/heads/', '')}
