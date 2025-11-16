@@ -40,6 +40,13 @@ This is the frontend web interface for Gun Del Sol, built with:
 - **Historical Analysis**: View past token analysis runs with detailed wallet breakdowns
 - **Real-time Updates**: Live data from the FastAPI backend API
 - **Trash Management**: Soft-delete tokens with restore/permanent delete options
+- **Solscan Settings Management**: Centralized control panel for Solscan URL parameters
+  - Activity type dropdown (SPL Transfer, SOL Transfer, etc.)
+  - Minimum value filter with arrow controls and drag-to-adjust
+  - Page size selection (10, 20, 30, 40, 60, 100)
+  - Auto-save after 300ms of changes
+  - Dynamic URL generation for multi-token wallet hyperlinks
+  - Syncs with AutoHotkey action wheel via INI file
 
 ## Getting Started
 

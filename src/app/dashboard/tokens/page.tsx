@@ -14,6 +14,8 @@ import {
   TokensResponse,
   MultiTokenWalletsResponse,
   refreshWalletBalances,
+  getSolscanSettings,
+  SolscanSettings,
   API_BASE_URL
 } from '@/lib/api';
 import { shouldLog } from '@/lib/debug';
@@ -81,6 +83,10 @@ const PopoverTrigger = dynamic(
 // Lazy load icons - only load when component renders
 const Copy = dynamic(
   () => import('lucide-react').then((mod) => ({ default: mod.Copy })),
+  { ssr: false }
+);
+const Twitter = dynamic(
+  () => import('lucide-react').then((mod) => ({ default: mod.Twitter })),
   { ssr: false }
 );
 const CalendarIcon = dynamic(
@@ -275,6 +281,16 @@ export default function TokensPage() {
   }>({ from: undefined, to: undefined });
   const hasInitializedPolling = useRef(false);
 
+  // Solscan settings state
+  const [solscanSettings, setSolscanSettings] = useState<SolscanSettings>({
+    activity_type: 'ACTIVITY_SPL_TRANSFER',
+    exclude_amount_zero: 'true',
+    remove_spam: 'true',
+    value: '100',
+    token_address: 'So11111111111111111111111111111111111111111',
+    page_size: '10'
+  });
+
   // Multi-token wallet panel state
   const [isWalletPanelExpanded, setIsWalletPanelExpanded] = useState(false);
   const [walletPage, setWalletPage] = useState(0);
@@ -322,6 +338,11 @@ export default function TokensPage() {
     }
   };
 
+  // Helper function to build Solscan URL from settings
+  const buildSolscanUrl = (walletAddress: string): string => {
+    return `https://solscan.io/account/${walletAddress}?activity_type=${solscanSettings.activity_type}&exclude_amount_zero=${solscanSettings.exclude_amount_zero}&remove_spam=${solscanSettings.remove_spam}&value=${solscanSettings.value}&value=&token_address=${solscanSettings.token_address}&page_size=${solscanSettings.page_size}#transfers`;
+  };
+
   useEffect(() => {
     // Fetch tokens and multi-token wallets from Flask API
     fetchData();
@@ -330,6 +351,24 @@ export default function TokensPage() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then(() => {});
     }
+
+    // Load Solscan settings from backend
+    getSolscanSettings()
+      .then(setSolscanSettings)
+      .catch(() => {
+        // Silently fail - will use defaults
+      });
+
+    // Poll for Solscan settings changes every 500ms for near-instant updates
+    const settingsInterval = setInterval(() => {
+      getSolscanSettings()
+        .then(setSolscanSettings)
+        .catch(() => {
+          // Silently fail
+        });
+    }, 500);
+
+    return () => clearInterval(settingsInterval);
   }, []);
 
   // Poll for active analysis jobs and auto-refresh when they complete
@@ -860,13 +899,15 @@ export default function TokensPage() {
                                 Refreshing a single wallet balance costs 1 API
                                 credit
                               </p>
+                              <p className='text-xs'>
+                                Refreshing all {walletsToDisplay.length}{' '}
+                                wallet(s) costs {walletsToDisplay.length} API
+                                credits
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </div>
-                    </th>
-                    <th className='px-4 pb-3 text-center font-medium'>
-                      Refresh Balance
                     </th>
                     <th className='px-4 pb-3 text-left font-medium'>Tags</th>
                     <th className='px-4 pb-3 text-center font-medium'>
@@ -926,7 +967,7 @@ export default function TokensPage() {
                               walletAddress={wallet.wallet_address}
                             >
                               <a
-                                href={`https://solscan.io/account/${wallet.wallet_address}`}
+                                href={buildSolscanUrl(wallet.wallet_address)}
                                 target='_blank'
                                 rel='noopener noreferrer'
                                 className='text-primary font-sans text-xs hover:underline'
@@ -934,6 +975,21 @@ export default function TokensPage() {
                                 {wallet.wallet_address}
                               </a>
                             </WalletAddressWithBotIndicator>
+                            <a
+                              href={`https://twitter.com/search?q=${encodeURIComponent(wallet.wallet_address)}`}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              title='Search on Twitter/X'
+                            >
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='h-6 w-6 p-0'
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Twitter className='h-3 w-3' />
+                              </Button>
+                            </a>
                             <Button
                               variant='ghost'
                               size='sm'
@@ -950,24 +1006,26 @@ export default function TokensPage() {
                           </div>
                         </td>
                         <td className='px-4 py-3 text-right font-mono text-sm'>
-                          {wallet.wallet_balance_usd !== null &&
-                          wallet.wallet_balance_usd !== undefined
-                            ? `$${Math.round(wallet.wallet_balance_usd)}`
-                            : 'N/A'}
-                        </td>
-                        <td className='px-4 py-3 text-center'>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='h-6 w-6 p-0'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRefreshBalances([wallet.wallet_address]);
-                            }}
-                            title={`Refresh balance - 1 API credit`}
-                          >
-                            <RefreshCw className='h-3 w-3' />
-                          </Button>
+                          <div className='flex items-center justify-end gap-2'>
+                            <span>
+                              {wallet.wallet_balance_usd !== null &&
+                              wallet.wallet_balance_usd !== undefined
+                                ? `$${Math.round(wallet.wallet_balance_usd)}`
+                                : 'N/A'}
+                            </span>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='h-6 w-6 p-0'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRefreshBalances([wallet.wallet_address]);
+                              }}
+                              title={`Refresh balance - 1 API credit`}
+                            >
+                              <RefreshCw className='h-3 w-3' />
+                            </Button>
+                          </div>
                         </td>
                         <td className='px-4 py-3'>
                           <div className='flex items-center gap-2'>
