@@ -367,3 +367,66 @@ export async function refreshMarketCaps(
 
   return res.json();
 }
+
+/**
+ * Get current API settings
+ */
+export async function getApiSettings(): Promise<AnalysisSettings> {
+  const res = await fetch(`${API_BASE_URL}/api/settings`, {
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch API settings');
+  }
+
+  return res.json();
+}
+
+/**
+ * Solscan Settings Interface
+ */
+export interface SolscanSettings {
+  activity_type: string;
+  exclude_amount_zero: string;
+  remove_spam: string;
+  value: string;
+  token_address: string;
+  page_size: string;
+}
+
+/**
+ * Get current Solscan URL settings from action_wheel_settings.ini
+ */
+export async function getSolscanSettings(): Promise<SolscanSettings> {
+  const res = await fetch(`${API_BASE_URL}/api/solscan-settings`, {
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch Solscan settings');
+  }
+
+  return res.json();
+}
+
+/**
+ * Update Solscan URL settings in action_wheel_settings.ini
+ */
+export async function updateSolscanSettings(
+  settings: Partial<SolscanSettings>
+): Promise<{ status: string; settings: SolscanSettings }> {
+  const res = await fetch(`${API_BASE_URL}/api/solscan-settings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(settings)
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to update Solscan settings');
+  }
+
+  return res.json();
+}
