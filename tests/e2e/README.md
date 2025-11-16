@@ -6,6 +6,26 @@ Comprehensive end-to-end test suite for Gun Del Sol using Playwright.
 
 This test suite covers all major features of the Gun Del Sol frontend application, testing the integration between the Next.js frontend (port 3000) and FastAPI backend (port 5003).
 
+## Test Suites
+
+### Smoke Tests (Fast - CI Default)
+- **Location**: `smoke.spec.ts`
+- **Runtime**: ~10 seconds
+- **Tests**: 3 basic validation tests
+- **Purpose**: Quick validation that critical pages load
+- **Run**: `pnpm test:e2e`
+- **CI**: Runs automatically (non-blocking)
+
+### Extended Tests (Comprehensive - Manual)
+- **Location**: `extended/*.spec.ts`
+- **Runtime**: ~5 minutes
+- **Tests**: 60+ comprehensive feature tests
+- **Purpose**: Full feature validation and regression testing
+- **Run**: `pnpm test:e2e:extended`
+- **CI**: Manual only (not in automated pipelines)
+
+**Recommendation**: Run smoke tests frequently, extended tests before major releases.
+
 ## Test Coverage
 
 ### Feature Tests
@@ -114,12 +134,14 @@ tests/e2e/
 │   └── api.fixture.ts       # API interaction helpers
 ├── helpers/
 │   └── test-data.ts         # Test data and utility functions
-├── dashboard-tokens.spec.ts
-├── multi-token-wallets.spec.ts
-├── watchlist.spec.ts
-├── trash-view.spec.ts
-├── codex-tagging.spec.ts
-├── analysis-notifications.spec.ts
+├── extended/                # Extended tests (manual only)
+│   ├── dashboard-tokens.spec.ts
+│   ├── multi-token-wallets.spec.ts
+│   ├── watchlist.spec.ts
+│   ├── trash-view.spec.ts
+│   ├── codex-tagging.spec.ts
+│   └── analysis-notifications.spec.ts
+├── smoke.spec.ts            # Smoke tests (CI default)
 └── README.md
 ```
 
