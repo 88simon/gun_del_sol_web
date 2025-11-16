@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: 34ff750a53ac978f48db90167a289ddcbbd85c59
+ * Backend Commit: 0b1ab1f6e2c69121d0a6fa1117d16a6202b75b33
  * DO NOT EDIT - This file is auto-generated
  */
 
@@ -911,7 +911,9 @@ export interface components {
       /** Created At */
       created_at: string;
       /** Result */
-      result?: Record<string, never> | null;
+      result?: {
+        [key: string]: unknown;
+      } | null;
       /** Error */
       error?: string | null;
       /** Axiom File */
@@ -1126,7 +1128,9 @@ export interface components {
       /** Token Address */
       token_address: string;
       /** Api Settings */
-      api_settings: Record<string, never>;
+      api_settings: {
+        [key: string]: unknown;
+      };
       /** Results Url */
       results_url: string;
     };
