@@ -49,3 +49,8 @@ next-env.d.ts
 .env.sentry-build-plugin
 .tmp-api-types.ts
 tmp-api-types.ts
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
