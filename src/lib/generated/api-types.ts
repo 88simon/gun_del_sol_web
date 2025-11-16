@@ -1,6 +1,6 @@
 /**
  * Auto-generated TypeScript types from Backend OpenAPI schema
- * Backend Commit: e5012b6c911c2de09b048ddb71ed8569a2906a8b
+ * Backend Commit: 3190b3e483ec75a9aede7568f0809f28e366f3ba
  * DO NOT EDIT - This file is auto-generated
  */
 
@@ -117,6 +117,39 @@ export interface paths {
      *         Updated settings
      */
     post: operations['update_api_settings_api_settings_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/solscan-settings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Solscan Settings
+     * @description Get current Solscan URL settings from action_wheel_settings.ini
+     *
+     *     Returns:
+     *         Solscan settings dictionary
+     */
+    get: operations['get_solscan_settings_api_solscan_settings_get'];
+    put?: never;
+    /**
+     * Update Solscan Settings
+     * @description Update Solscan URL settings in action_wheel_settings.ini
+     *
+     *     Args:
+     *         payload: Solscan settings to update
+     *
+     *     Returns:
+     *         Updated settings
+     */
+    post: operations['update_solscan_settings_api_solscan_settings_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -911,7 +944,9 @@ export interface components {
       /** Created At */
       created_at: string;
       /** Result */
-      result?: Record<string, never> | null;
+      result?: {
+        [key: string]: unknown;
+      } | null;
       /** Error */
       error?: string | null;
       /** Axiom File */
@@ -1126,7 +1161,9 @@ export interface components {
       /** Token Address */
       token_address: string;
       /** Api Settings */
-      api_settings: Record<string, never>;
+      api_settings: {
+        [key: string]: unknown;
+      };
       /** Results Url */
       results_url: string;
     };
@@ -1165,6 +1202,10 @@ export interface components {
       market_cap_usd_current: number | null;
       /** Market Cap Updated At */
       market_cap_updated_at: string | null;
+      /** Market Cap Ath */
+      market_cap_ath: number | null;
+      /** Market Cap Ath Timestamp */
+      market_cap_ath_timestamp: string | null;
       /** Success */
       success: boolean;
     };
@@ -1237,6 +1278,10 @@ export interface components {
       market_cap_usd_current?: number | null;
       /** Market Cap Updated At */
       market_cap_updated_at?: string | null;
+      /** Market Cap Ath */
+      market_cap_ath?: number | null;
+      /** Market Cap Ath Timestamp */
+      market_cap_ath_timestamp?: string | null;
     };
     /**
      * TokenDetail
@@ -1271,6 +1316,10 @@ export interface components {
       market_cap_usd_current?: number | null;
       /** Market Cap Updated At */
       market_cap_updated_at?: string | null;
+      /** Market Cap Ath */
+      market_cap_ath?: number | null;
+      /** Market Cap Ath Timestamp */
+      market_cap_ath_timestamp?: string | null;
       /** Wallets */
       wallets: components['schemas']['Wallet'][];
       /** Axiom Json */
@@ -1299,6 +1348,24 @@ export interface components {
       maxCreditsPerAnalysis?: number | null;
       /** Maxretries */
       maxRetries?: number | null;
+    };
+    /**
+     * UpdateSolscanSettingsRequest
+     * @description Request model for updating Solscan settings
+     */
+    UpdateSolscanSettingsRequest: {
+      /** Activity Type */
+      activity_type?: string | null;
+      /** Exclude Amount Zero */
+      exclude_amount_zero?: string | null;
+      /** Remove Spam */
+      remove_spam?: string | null;
+      /** Value */
+      value?: string | null;
+      /** Token Address */
+      token_address?: string | null;
+      /** Page Size */
+      page_size?: string | null;
     };
     /** ValidationError */
     ValidationError: {
@@ -1457,6 +1524,59 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['UpdateSettingsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_solscan_settings_api_solscan_settings_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+    };
+  };
+  update_solscan_settings_api_solscan_settings_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateSolscanSettingsRequest'];
       };
     };
     responses: {
